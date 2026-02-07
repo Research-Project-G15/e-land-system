@@ -1,0 +1,220 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Sri Lanka E-Land Registry System - Modern & Premium Design System
+   Trustworthy, digital-first aesthetic with deep blues and crisp whites
+   All colors in HSL format
+*/
+
+@layer base {
+  :root {
+    /* Modern Light Theme - Clean, Spacious, Tech-focused */
+    --background: 210 40% 98%;
+    /* Very light cool gray/blue */
+    --foreground: 222 47% 11%;
+    /* Deep navy almost black */
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Premium Brand Colors */
+    --primary: 221 83% 53%;
+    /* Vivid Royal Blue */
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    /* Soft cool gray */
+    --secondary-foreground: 222 47% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 40%;
+    /* Darkened for better visibility */
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222 47% 11.2%;
+
+    /* Functional Colors */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 151 55% 35%;
+    /* Darkened for text contrast */
+    /* Modern Emerald */
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 35%;
+    /* Darkened for text contrast */
+    /* Vibrant Amber */
+    --warning-foreground: 0 0% 100%;
+
+    --border: 214.3 31.8% 85%;
+    /* Darkened for better boundary visibility */
+    --input: 214.3 31.8% 85%;
+    /* Darkened for accessibility */
+    --ring: 221 83% 53%;
+
+    --radius: 0.75rem;
+    /* More rounded friendliness */
+
+    /* Sidebar - Deep Modern Gradient Base */
+    --sidebar-background: 222 47% 11%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 221 83% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 217 91% 60%;
+
+    /* Gold Enblem/Premium Accent */
+    --gold: 48 96% 45%;
+    /* Darkened gold */
+    --gold-foreground: 222 47% 11%;
+  }
+
+  .dark {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+
+    --card: 222 47% 13%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 222 47.1% 11.2%;
+
+    --secondary: 217 33% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217 33% 17.5%;
+    --muted-foreground: 215 20.2% 70%;
+
+    --accent: 217 33% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 150 40% 30%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 40 70% 30%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 217 33% 17.5%;
+    --input: 217 33% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    --sidebar-background: 224 71% 4%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217 91% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 217 91% 60%;
+
+    --gold: 48 96% 45%;
+    --gold-foreground: 0 0% 100%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-bold tracking-tight text-foreground;
+  }
+
+  /* Modern clean scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full hover:bg-muted-foreground/50 transition-colors;
+  }
+}
+
+/* Custom UI Utilities */
+@layer components {
+
+  /* Glassmorphism */
+  .glass {
+    @apply bg-white/70 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-lg;
+  }
+
+  .glass-card {
+    @apply bg-white/80 dark:bg-card/80 backdrop-blur-sm border border-border/50 shadow-sm hover:shadow-md transition-all duration-300;
+  }
+
+  /* Modern Header */
+  .govt-header {
+    @apply bg-white/80 dark:bg-background/80 backdrop-blur-md border-b border-border/40 shadow-sm sticky top-0 z-50 transition-all duration-300;
+  }
+
+  /* Badges */
+  .govt-badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold tracking-wide uppercase transition-colors;
+  }
+
+  .govt-badge-valid {
+    @apply bg-success/15 text-success border border-success/20;
+  }
+
+  .govt-badge-invalid {
+    @apply bg-destructive/15 text-destructive border border-destructive/20;
+  }
+
+  .govt-badge-pending {
+    @apply bg-warning/15 text-warning-foreground border border-warning/20;
+  }
+
+  /* Stamps */
+  .verification-stamp {
+    @apply border-2 border-dashed border-success/30 rounded-xl p-6 bg-success/5 relative overflow-hidden;
+  }
+
+  /* Deprecated but kept for compatibility */
+  .blockchain-stamp {
+    @apply border-2 border-dashed border-primary/30 rounded-xl p-6 bg-primary/5;
+  }
+
+  /* Hero Text Gradient */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-blue-600 to-indigo-600 dark:from-blue-400 dark:via-blue-300 dark:to-indigo-300;
+  }
+
+  /* Modern Card Lift Effect */
+  .hover-lift {
+    @apply transition-transform duration-300 hover:-translate-y-1 hover:shadow-lg;
+  }
+}
