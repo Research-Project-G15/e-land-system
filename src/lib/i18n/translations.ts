@@ -139,6 +139,7 @@ export const translations = {
         transfer: 'Transfer',
         update: 'Update',
         verify: 'Verification',
+        login: 'System Login',
       },
     },
 
@@ -341,6 +342,7 @@ export const translations = {
         transfer: 'මාරුව',
         update: 'යාවත්කාලීන',
         verify: 'සත්‍යාපනය',
+        login: 'පද්ධති පිවිසුම්',
       },
     },
 
@@ -543,6 +545,7 @@ export const translations = {
         transfer: 'பரிமாற்றம்',
         update: 'புதுப்பிப்பு',
         verify: 'சரிபார்ப்பு',
+        login: 'கணினி உள்நுழைவு',
       },
     },
 

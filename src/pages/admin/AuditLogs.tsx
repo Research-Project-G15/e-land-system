@@ -109,6 +109,8 @@ const AuditLogs = () => {
         return <Badge className="bg-blue-500/15 text-blue-700 hover:bg-blue-500/25 border-blue-200 dark:text-blue-400 dark:border-blue-800">{t.audit.actions.update}</Badge>;
       case 'verify':
         return <Badge variant="outline">{t.audit.actions.verify}</Badge>;
+      case 'login':
+        return <Badge className="bg-purple-500/15 text-purple-700 hover:bg-purple-500/25 border-purple-200 dark:text-purple-400 dark:border-purple-800">{t.audit.actions.login}</Badge>;
       default:
         return <Badge variant="secondary">{action}</Badge>;
     }
@@ -145,8 +147,8 @@ const AuditLogs = () => {
                     key={item.path}
                     to={item.path}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${location.pathname === item.path
-                        ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
-                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+                      : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <item.icon className="w-5 h-5 relative z-10" />
@@ -176,8 +178,8 @@ const AuditLogs = () => {
                   key={item.path}
                   to={item.path}
                   className={`flex flex-col items-center justify-center min-w-[5rem] p-3 rounded-xl gap-2 transition-colors ${location.pathname === item.path
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted/50 text-muted-foreground'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted/50 text-muted-foreground'
                     }`}
                 >
                   <item.icon className="w-6 h-6" />
@@ -249,6 +251,7 @@ const AuditLogs = () => {
                         <SelectItem value="transfer">{t.audit.actions.transfer}</SelectItem>
                         <SelectItem value="update">{t.audit.actions.update}</SelectItem>
                         <SelectItem value="verify">{t.audit.actions.verify}</SelectItem>
+                        <SelectItem value="login">{t.audit.actions.login}</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

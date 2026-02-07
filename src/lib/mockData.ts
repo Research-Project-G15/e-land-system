@@ -23,7 +23,7 @@ export interface AuditLogEntry {
   id: string;
   transactionId: string;
   deedNumber: string;
-  action: 'register' | 'transfer' | 'update' | 'verify';
+  action: 'register' | 'transfer' | 'update' | 'verify' | 'login';
   performedBy: string;
   timestamp: string;
   details?: string;
@@ -197,7 +197,34 @@ export const mockAuditLogs: AuditLogEntry[] = [
     timestamp: '2024-04-22T13:00:00Z',
     details: 'Initial deed registration - pending system confirmation',
   },
+  {
+    id: '9',
+    transactionId: 'LOG-2024-001',
+    deedNumber: '-',
+    action: 'login',
+    performedBy: 'admin',
+    timestamp: '2024-12-10T08:00:00Z',
+    details: 'Admin login successful',
+  },
+  {
+    id: '10',
+    transactionId: 'LOG-2024-002',
+    deedNumber: '-',
+    action: 'login',
+    performedBy: 'admin',
+    timestamp: '2024-12-10T09:30:00Z',
+    details: 'Admin login successful',
+  },
 ];
+
+export const addAuditLog = (entry: Omit<AuditLogEntry, 'id'>) => {
+  const newEntry: AuditLogEntry = {
+    ...entry,
+    id: (mockAuditLogs.length + 1).toString(),
+  };
+  mockAuditLogs.unshift(newEntry);
+  return newEntry;
+};
 
 // Mock dashboard stats
 export const mockDashboardStats: DashboardStats = {

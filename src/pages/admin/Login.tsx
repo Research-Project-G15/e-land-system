@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import MainLayout from '@/components/layout/MainLayout';
-import { mockAdminCredentials } from '@/lib/mockData';
+import { mockAdminCredentials, addAuditLog } from '@/lib/mockData';
 import logo from '@/assets/logo.png';
 
 const AdminLogin = () => {
@@ -28,6 +28,17 @@ const AdminLogin = () => {
 
     if (username === mockAdminCredentials.username && password === mockAdminCredentials.password) {
       localStorage.setItem('isAdminLoggedIn', 'true');
+
+      // Log the login action
+      addAuditLog({
+        transactionId: `LOG-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+        deedNumber: '-',
+        action: 'login',
+        performedBy: username,
+        timestamp: new Date().toISOString(),
+        details: 'Admin login successful',
+      });
+
       navigate('/admin/dashboard');
     } else {
       setError(t.login.error);

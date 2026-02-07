@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FilePlus, ArrowRightLeft, Search, FileText, LogOut, FileCheck, Clock, Users, ArrowUpDown, Bell, Settings, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, FilePlus, ArrowRightLeft, Search, FileText, LogOut, FileCheck, Clock, Users, ArrowUpDown, Bell, Settings, ChevronRight, Key } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
     { icon: FilePlus, label: t.dashboard.menu.registerDeed, path: '/admin/register' },
     { icon: ArrowRightLeft, label: t.dashboard.menu.transferDeed, path: '/admin/transfer' },
     { icon: Search, label: t.dashboard.menu.searchDeeds, path: '/admin/search' },
-    //  { icon: FileText, label: t.dashboard.menu.auditLogs, path: '/admin/audit' }, // Commented out until page exists
+    { icon: FileText, label: t.dashboard.menu.auditLogs, path: '/admin/audit' },
   ];
 
   const recentActivity = getRecentActivity(5);
@@ -244,11 +244,13 @@ const AdminDashboard = () => {
                           <div className="flex items-start gap-4">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${activity.action === 'register' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
                               activity.action === 'transfer' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
-                                'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                                activity.action === 'login' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
+                                  'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                               }`}>
                               {activity.action === 'register' ? <FilePlus className="w-5 h-5" /> :
                                 activity.action === 'transfer' ? <ArrowRightLeft className="w-5 h-5" /> :
-                                  <FileCheck className="w-5 h-5" />}
+                                  activity.action === 'login' ? <Key className="w-5 h-5" /> :
+                                    <FileCheck className="w-5 h-5" />}
                             </div>
                             <div>
                               <p className="font-medium text-foreground group-hover:text-primary transition-colors">

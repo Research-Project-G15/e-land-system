@@ -63,7 +63,7 @@ const SearchDeeds = () => {
     { icon: FilePlus, label: t.dashboard.menu.registerDeed, path: '/admin/register' },
     { icon: ArrowRightLeft, label: t.dashboard.menu.transferDeed, path: '/admin/transfer' },
     { icon: Search, label: t.dashboard.menu.searchDeeds, path: '/admin/search' },
-    //  { icon: FileText, label: t.dashboard.menu.auditLogs, path: '/admin/audit' },
+    { icon: FileText, label: t.dashboard.menu.auditLogs, path: '/admin/audit' },
   ];
 
   const districts = ['All', 'Colombo', 'Kandy', 'Galle', 'Jaffna', 'Kurunegala'];
@@ -156,8 +156,8 @@ const SearchDeeds = () => {
                     key={item.path}
                     to={item.path}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${location.pathname === item.path
-                        ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
-                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+                      : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <item.icon className="w-5 h-5 relative z-10" />
@@ -187,8 +187,8 @@ const SearchDeeds = () => {
                   key={item.path}
                   to={item.path}
                   className={`flex flex-col items-center justify-center min-w-[5rem] p-3 rounded-xl gap-2 transition-colors ${location.pathname === item.path
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted/50 text-muted-foreground'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted/50 text-muted-foreground'
                     }`}
                 >
                   <item.icon className="w-6 h-6" />
