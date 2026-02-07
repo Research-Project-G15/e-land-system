@@ -4,6 +4,17 @@ import { LayoutDashboard, FilePlus, ArrowRightLeft, Search, FileText, LogOut, Fi
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import MainLayout from '@/components/layout/MainLayout';
 import { mockDashboardStats, getRecentActivity } from '@/lib/mockData';
 
@@ -106,8 +117,8 @@ const AdminDashboard = () => {
                     key={item.path}
                     to={item.path}
                     className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative overflow-hidden ${location.pathname === item.path
-                        ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
-                        : 'hover:bg-muted text-muted-foreground hover:text-foreground'
+                      ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25'
+                      : 'hover:bg-muted text-muted-foreground hover:text-foreground'
                       }`}
                   >
                     <item.icon className="w-5 h-5 relative z-10" />
@@ -120,13 +131,30 @@ const AdminDashboard = () => {
               </div>
 
               <div className="mt-8 pt-6 border-t border-border/40">
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-destructive hover:bg-destructive/10 w-full transition-colors"
-                >
-                  <LogOut className="w-5 h-5" />
-                  <span className="font-medium">{t.nav.logout}</span>
-                </button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl text-destructive hover:bg-destructive/10 w-full transition-colors"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span className="font-medium">{t.nav.logout}</span>
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{t.dashboard.logoutConfirm.title}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {t.dashboard.logoutConfirm.message}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{t.dashboard.logoutConfirm.cancel}</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleLogout} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        {t.dashboard.logoutConfirm.confirm}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
 
@@ -137,8 +165,8 @@ const AdminDashboard = () => {
                   key={item.path}
                   to={item.path}
                   className={`flex flex-col items-center justify-center min-w-[5rem] p-3 rounded-xl gap-2 transition-colors ${location.pathname === item.path
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-muted/50 text-muted-foreground'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted/50 text-muted-foreground'
                     }`}
                 >
                   <item.icon className="w-6 h-6" />
@@ -215,8 +243,8 @@ const AdminDashboard = () => {
                         <div key={activity.id} className="p-4 sm:p-6 hover:bg-muted/30 transition-colors flex items-center justify-between group">
                           <div className="flex items-start gap-4">
                             <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${activity.action === 'register' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' :
-                                activity.action === 'transfer' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
-                                  'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                              activity.action === 'transfer' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
+                                'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
                               }`}>
                               {activity.action === 'register' ? <FilePlus className="w-5 h-5" /> :
                                 activity.action === 'transfer' ? <ArrowRightLeft className="w-5 h-5" /> :

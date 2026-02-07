@@ -100,6 +100,12 @@ export const translations = {
         auditLogs: 'Audit Logs',
       },
       recentActivity: 'Recent Activity',
+      logoutConfirm: {
+        title: 'Confirm Logout',
+        message: 'Are you sure you want to log out of the admin portal?',
+        confirm: 'Logout',
+        cancel: 'Cancel',
+      },
     },
 
     // Register Deed
@@ -296,6 +302,12 @@ export const translations = {
         auditLogs: 'විගණන ලඝු',
       },
       recentActivity: 'මෑත ක්‍රියාකාරකම්',
+      logoutConfirm: {
+        title: 'පිටවීම තහවුරු කරන්න',
+        message: 'ඔබට පරිපාලක පිවිසුමෙන් ඉවත් වීමට අවශ්‍ය බව විශ්වාසද?',
+        confirm: 'පිටවීම',
+        cancel: 'අවලංගු කරන්න',
+      },
     },
 
     // Register Deed
@@ -492,6 +504,12 @@ export const translations = {
         auditLogs: 'தணிக்கை பதிவுகள்',
       },
       recentActivity: 'சமீபத்திய செயல்பாடு',
+      logoutConfirm: {
+        title: 'வெளியேறுவதை உறுதிப்படுத்தவும்',
+        message: 'நிர்வாகப் போர்ட்டலில் இருந்து வெளியேற விரும்புகிறீர்களா?',
+        confirm: 'வெளியேறு',
+        cancel: 'ரத்து செய்',
+      },
     },
 
     // Register Deed
