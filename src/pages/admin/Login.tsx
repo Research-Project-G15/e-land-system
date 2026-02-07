@@ -53,7 +53,7 @@ const AdminLogin = () => {
               <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 mb-8 flex items-start gap-3">
                 <ShieldAlert className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="text-sm font-semibold text-warning-foreground mb-1">{t.login.warning}</h3>
+                  <h3 className="text-sm font-semibold text-[#C3700C] mb-1">{t.login.warning}</h3>
                   <p className="text-xs text-muted-foreground">Restricted area for authorized government officials only. All actions are logged and monitored.</p>
                 </div>
               </div>

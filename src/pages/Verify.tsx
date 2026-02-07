@@ -132,7 +132,7 @@ const Verify = () => {
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <Card className="glass overflow-hidden border-0 shadow-2xl">
                 <div className={`h-2 w-full ${result === 'not_found' ? 'bg-destructive' :
-                    result.status === 'valid' ? 'bg-success' : 'bg-warning'
+                  result.status === 'valid' ? 'bg-success' : 'bg-warning'
                   }`}></div>
 
                 <CardHeader className="border-b border-border/40 bg-muted/20 pb-8">
@@ -179,8 +179,8 @@ const Verify = () => {
                       {/* Status Badge */}
                       <div className="flex justify-center -mt-12 mb-8 relative z-10">
                         <span className={`px-6 py-2 rounded-full font-bold shadow-sm border flex items-center gap-2 ${result.status === 'valid'
-                            ? 'bg-success text-success-foreground border-success/20'
-                            : 'bg-warning text-warning-foreground border-warning/20'
+                          ? 'bg-success text-success-foreground border-success/20'
+                          : 'bg-warning text-warning-foreground border-warning/20'
                           }`}>
                           {result.status === 'valid' ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
                           {result.status === 'valid' ? t.verify.result.valid : 'Pending Verification'}
@@ -225,7 +225,7 @@ const Verify = () => {
                             <Hash className="w-5 h-5 text-success" />
                           </div>
                           <div>
-                            <h4 className="font-bold text-success-foreground">{t.verify.result.verificationBadge}</h4>
+                            <h4 className="font-bold text-success">{t.verify.result.verificationBadge}</h4>
                             <p className="text-xs text-muted-foreground">Cryptographically secured record</p>
                           </div>
                         </div>
