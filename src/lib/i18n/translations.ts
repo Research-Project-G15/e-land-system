@@ -172,7 +172,7 @@ export const translations = {
     footer: {
       research: 'This system is a prototype developed for academic research purposes.',
       university: 'Sri Lankan University Research Project',
-      copyright: '© 2024 All rights reserved.',
+      copyright: 'All rights reserved.',
       disclaimer: 'This is a research prototype and not an official government system.',
     },
 
@@ -368,7 +368,7 @@ export const translations = {
     footer: {
       research: 'මෙම පද්ධතිය අධ්‍යයන පර්යේෂණ අරමුණු සඳහා සංවර්ධනය කරන ලද මූලාකෘතියකි.',
       university: 'ශ්‍රී ලංකා විශ්ව විද්‍යාල පර්යේෂණ ව්‍යාපෘතිය',
-      copyright: '© 2024 සියලු හිමිකම් ඇවිරිණි.',
+      copyright: 'සියලු හිමිකම් ඇවිරිණි.',
       disclaimer: 'මෙය පර්යේෂණ මූලාකෘතියක් වන අතර නිල රජයේ පද්ධතියක් නොවේ.',
     },
 
@@ -564,7 +564,7 @@ export const translations = {
     footer: {
       research: 'இந்த முறை கல்வி ஆராய்ச்சி நோக்கங்களுக்காக உருவாக்கப்பட்ட ஒரு முன்மாதிரியாகும்.',
       university: 'இலங்கை பல்கலைக்கழக ஆராய்ச்சி திட்டம்',
-      copyright: '© 2024 அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.',
+      copyright: 'அனைத்து உரிமைகளும் பாதுகாக்கப்பட்டவை.',
       disclaimer: 'இது ஒரு ஆராய்ச்சி முன்மாதிரி மற்றும் அதிகாரப்பூர்வ அரசு முறை அல்ல.',
     },
 
