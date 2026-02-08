@@ -14,6 +14,7 @@ export interface DeedRecord {
     lastVerified: string;
     blockchainHash: string;
     transactionId: string;
+    registeredBy?: string;
     status: 'valid' | 'invalid' | 'pending';
 }
 
@@ -22,7 +23,7 @@ export interface AuditLogEntry {
     id?: string; // Optional for backend response compatibility
     transactionId: string;
     deedNumber: string;
-    action: 'register' | 'transfer' | 'update' | 'verify' | 'login' | 'logout';
+    action: 'register' | 'transfer' | 'update' | 'verify' | 'login' | 'logout' | 'create user' | 'delete user' | 'delete deed';
     performedBy: string;
     timestamp: string;
     details?: string;

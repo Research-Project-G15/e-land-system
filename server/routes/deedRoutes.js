@@ -74,7 +74,10 @@ router.post('/', auth, async (req, res) => {
             return res.status(400).json({ message: 'Deed with this Title Number or Deed Number already exists' });
         }
 
-        const newDeed = new Deed(req.body);
+        const newDeed = new Deed({
+            ...req.body,
+            registeredBy: req.user.user.username // Save the user who registered it
+        });
         const deed = await newDeed.save();
 
         // Create Audit Log
@@ -145,6 +148,14 @@ router.put('/:id', auth, async (req, res) => {
 
         const deed = await Deed.findById(id);
         if (!deed) return res.status(404).json({ message: 'Deed not found' });
+
+        // Permission Check: Super Admin OR Registered By User
+        const isSuperAdmin = req.user.user.role === 'superadmin';
+        const isOwner = deed.registeredBy === req.user.user.username;
+
+        if (!isSuperAdmin && !isOwner) {
+            return res.status(403).json({ message: 'Access Denied: You can only update deeds you registered.' });
+        }
 
         // Update fields
         Object.assign(deed, updateData);

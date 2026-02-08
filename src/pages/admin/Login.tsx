@@ -30,6 +30,7 @@ const AdminLogin = () => {
       localStorage.setItem('isAdminLoggedIn', 'true');
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('userRole', response.data.user.role);
+      localStorage.setItem('username', response.data.user.username);
 
       if (response.data.user.mustChangePassword) {
         navigate('/admin/change-password');

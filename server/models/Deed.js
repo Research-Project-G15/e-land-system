@@ -56,6 +56,11 @@ const deedSchema = new mongoose.Schema({
         type: String,
         unique: true,
     },
+    registeredBy: {
+        type: String,
+        required: true,
+        default: 'admin'
+    }
 });
 
 module.exports = mongoose.model('Deed', deedSchema);

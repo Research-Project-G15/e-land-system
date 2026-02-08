@@ -74,6 +74,7 @@ const SearchDeeds = () => {
   const [deletedDeedNumber, setDeletedDeedNumber] = useState('');
 
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDeeds();
@@ -82,7 +83,9 @@ const SearchDeeds = () => {
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('isAdminLoggedIn');
     const role = localStorage.getItem('userRole');
+    const username = localStorage.getItem('username'); // Ensure this is set on login!
     setUserRole(role);
+    setCurrentUsername(username);
 
     if (!isLoggedIn) {
       navigate('/admin/login');
@@ -186,6 +189,30 @@ const SearchDeeds = () => {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleDeleteDeed = async () => {
+    if (!deedToDelete) return;
+    setIsDeleting(true);
+    try {
+      // Use either _id or id
+      const idToDelete = deedToDelete._id || deedToDelete.id;
+      await api.delete(`/deeds/${idToDelete}`);
+
+      setDeletedDeedNumber(deedToDelete.deedNumber);
+      setDeedToDelete(null);
+      setShowDeleteSuccessDialog(true);
+      fetchDeeds();
+    } catch (error) {
+      console.error('Error deleting deed:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete deed.",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -339,15 +366,22 @@ const SearchDeeds = () => {
                                 <Eye className="w-3.5 h-3.5" />
                                 <span className="sr-only sm:not-sr-only">{t.common.view}</span>
                               </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEditDeed(deed)}
-                                className="h-8 gap-1 hover:border-blue-500/50 hover:text-blue-600 transition-colors ml-2"
-                              >
-                                <Edit className="w-3.5 h-3.5" />
-                                <span className="sr-only sm:not-sr-only">Edit</span>
-                              </Button>
+
+                              {/* Edit Button - Restricted to Super Admin or Creator */}
+                              {/* Assuming 'username' is stored in localStorage or decoded token. 
+                                  If not, we fallback to just superadmin check if username missing, 
+                                  but we should get username. */}
+                              {(userRole === 'superadmin' || currentUsername === deed.registeredBy) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleEditDeed(deed)}
+                                  className="h-8 gap-1 hover:border-blue-500/50 hover:text-blue-600 transition-colors ml-2"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                  <span className="sr-only sm:not-sr-only">Edit</span>
+                                </Button>
+                              )}
 
 
                               {userRole === 'superadmin' && (
