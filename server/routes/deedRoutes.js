@@ -1,8 +1,15 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const Deed = require('../models/Deed');
 const AuditLog = require('../models/AuditLog');
 const auth = require('../middleware/authMiddleware');
+
+// Helper function to generate SHA-256 hash
+const calculateDeedHash = (deedData) => {
+    const dataString = `${deedData.landTitleNumber}-${deedData.deedNumber}-${deedData.ownerName}-${deedData.ownerNIC}-${deedData.landLocation}-${deedData.province}-${deedData.district}-${deedData.landArea}-${deedData.surveyRef}`;
+    return crypto.createHash('sha256').update(dataString).digest('hex');
+};
 
 // Get all deeds (with filters)
 router.get('/', async (req, res) => {
@@ -78,6 +85,9 @@ router.post('/', auth, async (req, res) => {
             ...req.body,
             registeredBy: req.user.user.username // Save the user who registered it
         });
+
+        // Generate Hash
+        newDeed.blockchainHash = calculateDeedHash(newDeed);
         const deed = await newDeed.save();
 
         // Create Audit Log
@@ -114,7 +124,9 @@ router.put('/transfer', auth, async (req, res) => {
         // Update Deed
         deed.ownerName = newOwnerName;
         deed.ownerNIC = newOwnerNIC;
-        // Potentially update blockchain hash or other fields here
+
+        // Recalculate hash after transfer
+        deed.blockchainHash = calculateDeedHash(deed);
 
         await deed.save();
 
@@ -159,6 +171,10 @@ router.put('/:id', auth, async (req, res) => {
 
         // Update fields
         Object.assign(deed, updateData);
+
+        // Recalculate hash after update
+        deed.blockchainHash = calculateDeedHash(deed);
+
         // Ensure to update the 'lastVerified' or similar timestamp if needed
         // deed.lastVerified = new Date(); // If tracking separate update time
 
