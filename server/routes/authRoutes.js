@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const ExternalUser = require('../models/ExternalUser');
 const AuditLog = require('../models/AuditLog');
 
 // Register External User (Lawyer/Notary)
@@ -81,7 +82,88 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login Admin
+// Login External User (Lawyer/Notary)
+router.post('/external-login', async (req, res) => {
+    try {
+        let { username, password } = req.body;
+
+        // Trim username to handle accidental whitespace
+        username = username ? username.trim() : '';
+
+        console.log(`[EXTERNAL LOGIN ATTEMPT] Username: '${username}', Password provided: ${!!password}`);
+
+        // Check if external user exists and is active
+        const externalUser = await ExternalUser.findOne({ username, isActive: true });
+        if (!externalUser) {
+            console.log(`[EXTERNAL LOGIN FAILED] User not found or inactive: '${username}'`);
+            return res.status(400).json({ message: 'Invalid credentials or account inactive' });
+        }
+
+        console.log(`[EXTERNAL LOGIN] User found: ${externalUser.username}, Profession: ${externalUser.profession}`);
+
+        // Validate password (assuming passwords are stored as plain text in the external table)
+        // If passwords are hashed, use bcrypt.compare instead
+        const isMatch = password === externalUser.password;
+        if (!isMatch) {
+            console.log(`[EXTERNAL LOGIN FAILED] Password mismatch for user: '${username}'`);
+            return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // Update last login
+        externalUser.lastLogin = new Date();
+        await externalUser.save();
+
+        // Create Token
+        const payload = {
+            user: {
+                id: externalUser._id,
+                username: externalUser.username,
+                role: externalUser.profession,
+                userType: 'external',
+                profession: externalUser.profession,
+                fullName: externalUser.fullName,
+                email: externalUser.email,
+                licenseNumber: externalUser.licenseNumber
+            }
+        };
+
+        // Log Login
+        const log = new AuditLog({
+            transactionId: `EXT-LOGIN-${Date.now()}`,
+            action: 'login',
+            performedBy: externalUser.username,
+            details: `External user login successful - ${externalUser.profession}: ${externalUser.fullName}`
+        });
+        await log.save();
+
+        jwt.sign(
+            payload,
+            process.env.JWT_SECRET,
+            { expiresIn: '1d' },
+            (err, token) => {
+                if (err) throw err;
+                res.json({
+                    token,
+                    user: {
+                        username: externalUser.username,
+                        role: externalUser.profession,
+                        userType: 'external',
+                        profession: externalUser.profession,
+                        fullName: externalUser.fullName,
+                        email: externalUser.email,
+                        licenseNumber: externalUser.licenseNumber,
+                        lastLogin: externalUser.lastLogin
+                    }
+                });
+            }
+        );
+    } catch (err) {
+        console.error('External login error:', err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// Login Admin (Internal Users)
 router.post('/login', async (req, res) => {
     try {
         let { username, password } = req.body;

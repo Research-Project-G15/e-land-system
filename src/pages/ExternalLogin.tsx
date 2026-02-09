@@ -25,16 +25,10 @@ const ExternalLogin = () => {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', { 
+      const response = await api.post('/auth/external-login', { 
         username, 
         password 
       });
-
-      // Verify this is an external user
-      if (response.data.user.userType !== 'external') {
-        setError('Invalid credentials for external access. Please use the Admin Login for internal users.');
-        return;
-      }
 
       localStorage.setItem('isExternalLoggedIn', 'true');
       localStorage.setItem('token', response.data.token);
@@ -42,6 +36,9 @@ const ExternalLogin = () => {
       localStorage.setItem('userType', 'external');
       localStorage.setItem('username', response.data.user.username);
       localStorage.setItem('profession', response.data.user.profession);
+      localStorage.setItem('fullName', response.data.user.fullName);
+      localStorage.setItem('email', response.data.user.email);
+      localStorage.setItem('licenseNumber', response.data.user.licenseNumber);
 
       navigate('/external/search');
     } catch (err: any) {
