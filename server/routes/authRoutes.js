@@ -3,11 +3,178 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const ExternalUser = require('../models/ExternalUser');
 const AuditLog = require('../models/AuditLog');
+const auth = require('../middleware/authMiddleware');
+const requireSuperAdmin = require('../middleware/roleMiddleware');
+
+// Register External User (Public endpoint)
+router.post('/register-external', async (req, res) => {
+    try {
+        const { 
+            fullName, 
+            username, 
+            password, 
+            profession, 
+            gender, 
+            province, 
+            district 
+        } = req.body;
+
+        // Validate required fields
+        if (!fullName || !username || !password || !profession || !gender || !province || !district) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+
+        // Validate profession
+        if (!['lawyer', 'notary'].includes(profession)) {
+            return res.status(400).json({ message: 'Invalid profession. Must be lawyer or notary.' });
+        }
+
+        // Validate gender
+        if (!['male', 'female', 'other'].includes(gender)) {
+            return res.status(400).json({ message: 'Invalid gender selection.' });
+        }
+
+        // Check if username already exists
+        let existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Username already exists. Please choose a different username.' });
+        }
+
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, salt);
+
+        // Create new external user with pending status
+        const user = new User({
+            fullName,
+            username,
+            passwordHash,
+            role: profession,
+            userType: 'external',
+            profession,
+            gender,
+            province,
+            district,
+            registrationStatus: 'pending'
+        });
+
+        await user.save();
+
+        // Log registration
+        const log = new AuditLog({
+            transactionId: `REG-EXT-${Date.now()}`,
+            action: 'create user',
+            performedBy: 'system',
+            details: `External user registration submitted: ${username} (${profession}) - Status: Pending`
+        });
+        await log.save();
+
+        res.status(201).json({ 
+            message: 'Registration submitted successfully. Your account is pending admin approval.',
+            registrationId: user._id
+        });
+    } catch (err) {
+        console.error('External registration error:', err.message);
+        res.status(500).json({ message: 'Server error during registration' });
+    }
+});
+
+// Get pending external user registrations (Admin only)
+router.get('/pending-registrations', auth, requireSuperAdmin, async (req, res) => {
+    try {
+        const pendingUsers = await User.find({ 
+            userType: 'external', 
+            registrationStatus: 'pending' 
+        }).select('-passwordHash').sort({ registrationDate: -1 });
+
+        res.json(pendingUsers);
+    } catch (err) {
+        console.error('Error fetching pending registrations:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Approve external user registration (Admin only)
+router.post('/approve-registration/:userId', auth, requireSuperAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const adminUsername = req.user.user.username;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.registrationStatus !== 'pending') {
+            return res.status(400).json({ message: 'User registration is not pending' });
+        }
+
+        // Approve the user
+        user.registrationStatus = 'approved';
+        user.approvedBy = adminUsername;
+        user.approvedAt = new Date();
+        await user.save();
+
+        // Log approval
+        const log = new AuditLog({
+            transactionId: `APPROVE-${Date.now()}`,
+            action: 'create user',
+            performedBy: adminUsername,
+            details: `External user approved: ${user.username} (${user.profession})`
+        });
+        await log.save();
+
+        res.json({ message: 'User registration approved successfully' });
+    } catch (err) {
+        console.error('Error approving registration:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Reject external user registration (Admin only)
+router.post('/reject-registration/:userId', auth, requireSuperAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { reason } = req.body;
+        const adminUsername = req.user.user.username;
+
+        if (!reason) {
+            return res.status(400).json({ message: 'Rejection reason is required' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.registrationStatus !== 'pending') {
+            return res.status(400).json({ message: 'User registration is not pending' });
+        }
+
+        // Reject the user
+        user.registrationStatus = 'rejected';
+        user.rejectionReason = reason;
+        await user.save();
+
+        // Log rejection
+        const log = new AuditLog({
+            transactionId: `REJECT-${Date.now()}`,
+            action: 'create user',
+            performedBy: adminUsername,
+            details: `External user rejected: ${user.username} (${user.profession}) - Reason: ${reason}`
+        });
+        await log.save();
+
+        res.json({ message: 'User registration rejected' });
+    } catch (err) {
+        console.error('Error rejecting registration:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 // Register External User (Lawyer/Notary)
-router.post('/register-external', async (req, res) => {
+router.post('/register-external-old', async (req, res) => {
     try {
         const { username, password, profession } = req.body;
 
@@ -82,87 +249,6 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login External User (Lawyer/Notary)
-router.post('/external-login', async (req, res) => {
-    try {
-        let { username, password } = req.body;
-
-        // Trim username to handle accidental whitespace
-        username = username ? username.trim() : '';
-
-        console.log(`[EXTERNAL LOGIN ATTEMPT] Username: '${username}', Password provided: ${!!password}`);
-
-        // Check if external user exists and is active
-        const externalUser = await ExternalUser.findOne({ username, isActive: true });
-        if (!externalUser) {
-            console.log(`[EXTERNAL LOGIN FAILED] User not found or inactive: '${username}'`);
-            return res.status(400).json({ message: 'Invalid credentials or account inactive' });
-        }
-
-        console.log(`[EXTERNAL LOGIN] User found: ${externalUser.username}, Profession: ${externalUser.profession}`);
-
-        // Validate password (assuming passwords are stored as plain text in the external table)
-        // If passwords are hashed, use bcrypt.compare instead
-        const isMatch = password === externalUser.password;
-        if (!isMatch) {
-            console.log(`[EXTERNAL LOGIN FAILED] Password mismatch for user: '${username}'`);
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
-
-        // Update last login
-        externalUser.lastLogin = new Date();
-        await externalUser.save();
-
-        // Create Token
-        const payload = {
-            user: {
-                id: externalUser._id,
-                username: externalUser.username,
-                role: externalUser.profession,
-                userType: 'external',
-                profession: externalUser.profession,
-                fullName: externalUser.fullName,
-                email: externalUser.email,
-                licenseNumber: externalUser.licenseNumber
-            }
-        };
-
-        // Log Login
-        const log = new AuditLog({
-            transactionId: `EXT-LOGIN-${Date.now()}`,
-            action: 'login',
-            performedBy: externalUser.username,
-            details: `External user login successful - ${externalUser.profession}: ${externalUser.fullName}`
-        });
-        await log.save();
-
-        jwt.sign(
-            payload,
-            process.env.JWT_SECRET,
-            { expiresIn: '1d' },
-            (err, token) => {
-                if (err) throw err;
-                res.json({
-                    token,
-                    user: {
-                        username: externalUser.username,
-                        role: externalUser.profession,
-                        userType: 'external',
-                        profession: externalUser.profession,
-                        fullName: externalUser.fullName,
-                        email: externalUser.email,
-                        licenseNumber: externalUser.licenseNumber,
-                        lastLogin: externalUser.lastLogin
-                    }
-                });
-            }
-        );
-    } catch (err) {
-        console.error('External login error:', err.message);
-        res.status(500).send('Server Error');
-    }
-});
-
 // Login Admin (Internal Users)
 router.post('/login', async (req, res) => {
     try {
@@ -186,6 +272,19 @@ router.post('/login', async (req, res) => {
         if (!isMatch) {
             console.log(`[LOGIN FAILED] Password mismatch for user: '${username}'`);
             return res.status(400).json({ message: 'Invalid credentials - Password incorrect' });
+        }
+
+        // Check if external user is approved
+        if (user.userType === 'external' && user.registrationStatus !== 'approved') {
+            if (user.registrationStatus === 'pending') {
+                return res.status(403).json({ 
+                    message: 'Your account is pending admin approval. Please wait for approval before logging in.' 
+                });
+            } else if (user.registrationStatus === 'rejected') {
+                return res.status(403).json({ 
+                    message: 'Your account registration has been rejected. Please contact support for more information.' 
+                });
+            }
         }
 
         // Create Token

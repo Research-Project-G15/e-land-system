@@ -10,29 +10,43 @@ const createExternalUser = async () => {
         // Create a lawyer user
         const lawyerPassword = await bcrypt.hash('lawyer123', 10);
         const lawyer = new User({
+            fullName: 'John Doe',
             username: 'lawyer1',
             passwordHash: lawyerPassword,
             role: 'lawyer',
             userType: 'external',
-            profession: 'lawyer'
+            profession: 'lawyer',
+            gender: 'male',
+            province: 'Western',
+            district: 'Colombo',
+            registrationStatus: 'approved',
+            approvedBy: 'system',
+            approvedAt: new Date()
         });
         
         // Create a notary user
         const notaryPassword = await bcrypt.hash('notary123', 10);
         const notary = new User({
+            fullName: 'Jane Smith',
             username: 'notary1',
             passwordHash: notaryPassword,
             role: 'notary',
             userType: 'external',
-            profession: 'notary'
+            profession: 'notary',
+            gender: 'female',
+            province: 'Central',
+            district: 'Kandy',
+            registrationStatus: 'approved',
+            approvedBy: 'system',
+            approvedAt: new Date()
         });
         
         await lawyer.save();
         await notary.save();
         
         console.log('External users created successfully:');
-        console.log('Lawyer - Username: lawyer1, Password: lawyer123');
-        console.log('Notary - Username: notary1, Password: notary123');
+        console.log('Lawyer - Username: lawyer1, Password: lawyer123 (John Doe)');
+        console.log('Notary - Username: notary1, Password: notary123 (Jane Smith)');
         
         process.exit(0);
     } catch (error) {

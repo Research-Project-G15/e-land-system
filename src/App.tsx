@@ -9,6 +9,7 @@ import Verify from "./pages/Verify";
 import About from "./pages/About";
 import Login from "./pages/Login";
 import ExternalLogin from "./pages/ExternalLogin";
+import ExternalRegister from "./pages/ExternalRegister";
 import AdminLogin from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
 import RegisterDeed from "./pages/admin/RegisterDeed";
@@ -16,6 +17,7 @@ import TransferOwnership from "./pages/admin/TransferOwnership";
 import SearchDeeds from "./pages/admin/SearchDeeds";
 import AuditLogs from "./pages/admin/AuditLogs";
 import UserManagement from "./pages/admin/UserManagement";
+import ExternalUserManagement from "./pages/admin/ExternalUserManagement";
 import ChangePassword from "./pages/admin/ChangePassword";
 import ExternalSearch from "./pages/external/ExternalSearch";
 import NotFound from "./pages/NotFound";
@@ -35,6 +37,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/external-login" element={<ExternalLogin />} />
+            <Route path="/external-register" element={<ExternalRegister />} />
             <Route path="/verify" element={<Verify />} />
             <Route path="/about" element={<About />} />
             <Route path="/admin/login" element={<AdminLogin />} />
@@ -44,6 +47,7 @@ const App = () => (
             <Route path="/admin/search" element={<SearchDeeds />} />
             <Route path="/admin/audit" element={<AuditLogs />} />
             <Route path="/admin/users" element={<UserManagement />} />
+            <Route path="/admin/external-users" element={<ExternalUserManagement />} />
             <Route path="/admin/change-password" element={<ChangePassword />} />
             <Route path="/external/search" element={<ExternalSearch />} />
             <Route path="*" element={<NotFound />} />
