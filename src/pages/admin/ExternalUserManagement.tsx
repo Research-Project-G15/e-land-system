@@ -258,205 +258,235 @@ const ExternalUserManagement = () => {
                   return (
                     <div
                       key={user._id}
-                      className="border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                      className="border rounded-lg p-6 hover:bg-muted/50 transition-colors"
                     >
-                      <div className="flex items-start justify-between">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                              <ProfessionIcon className="w-5 h-5 text-muted-foreground" />
-                              <h3 className="font-semibold text-lg">{user.fullName}</h3>
+                      <div className="space-y-4">
+                        {/* Header Row */}
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full">
+                              <ProfessionIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                             </div>
+                            <div>
+                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{user.fullName}</h3>
+                              <p className="text-sm text-muted-foreground">@{user.username}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
                             <Badge className={getStatusBadge(user.registrationStatus)}>
                               {user.registrationStatus}
                             </Badge>
+                            {user.emailVerified ? (
+                              <span title="Email Verified">
+                                <CheckCircle className="w-5 h-5 text-green-500" />
+                              </span>
+                            ) : (
+                              <span title="Email Not Verified">
+                                <XCircle className="w-5 h-5 text-red-500" />
+                              </span>
+                            )}
                           </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
-                            <div className="flex items-center gap-2">
-                              <Users className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-muted-foreground">Username:</span>
-                              <span className="font-mono">{user.username}</span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
+                        </div>
+                        
+                        {/* Details Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm">
                               <Scale className="w-4 h-4 text-muted-foreground" />
                               <span className="text-muted-foreground">Profession:</span>
-                              <span className="capitalize">{user.profession}</span>
+                              <span className="font-medium capitalize">{user.profession}</span>
                             </div>
                             
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 text-sm">
                               <MapPin className="w-4 h-4 text-muted-foreground" />
                               <span className="text-muted-foreground">Location:</span>
-                              <span>{user.district}, {user.province}</span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-muted-foreground">Applied:</span>
-                              <span>{new Date(user.registrationDate).toLocaleDateString()}</span>
+                              <span className="font-medium">{user.district}, {user.province}</span>
                             </div>
                           </div>
                           
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm mt-2">
-                            <div className="flex items-center gap-2">
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm">
                               <span className="text-muted-foreground">Email:</span>
-                              <span>{user.email}</span>
-                              {user.emailVerified ? (
-                                <span title="Email Verified">
-                                  <CheckCircle className="w-4 h-4 text-green-500" />
-                                </span>
-                              ) : (
-                                <span title="Email Not Verified">
-                                  <XCircle className="w-4 h-4 text-red-500" />
-                                </span>
-                              )}
+                              <span className="font-medium text-blue-600 dark:text-blue-400">{user.email}</span>
                             </div>
                             
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 text-sm">
                               <span className="text-muted-foreground">Phone:</span>
-                              <span>{user.phoneNumber}</span>
+                              <span className="font-medium">{user.phoneNumber}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-sm">
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                              <span className="text-muted-foreground">Applied:</span>
+                              <span className="font-medium">{new Date(user.registrationDate).toLocaleDateString()}</span>
+                            </div>
+                            
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-muted-foreground">Gender:</span>
+                              <span className="font-medium capitalize">{user.gender}</span>
                             </div>
                           </div>
                         </div>
                         
-                        <div className="flex items-center gap-2 ml-4">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => setSelectedUser(user)}
-                              >
-                                <Eye className="w-4 h-4 mr-2" />
-                                View Details
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Registration Details</DialogTitle>
-                              </DialogHeader>
-                              {selectedUser && (
-                                <div className="space-y-4">
-                                  <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">
-                                        Full Name
-                                      </Label>
-                                      <p className="font-medium">{selectedUser.fullName}</p>
+                        {/* Action Buttons */}
+                        <div className="flex items-center justify-between pt-4 border-t">
+                          <div className="flex items-center gap-2">
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => setSelectedUser(user)}
+                                >
+                                  <Eye className="w-4 h-4 mr-2" />
+                                  View Details
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent className="max-w-2xl">
+                                <DialogHeader>
+                                  <DialogTitle>Registration Details - {selectedUser?.fullName}</DialogTitle>
+                                </DialogHeader>
+                                {selectedUser && (
+                                  <div className="space-y-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                      <div className="space-y-4">
+                                        <div>
+                                          <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
+                                          <p className="font-medium text-lg">{selectedUser.fullName}</p>
+                                        </div>
+                                        <div>
+                                          <Label className="text-sm font-medium text-muted-foreground">Username</Label>
+                                          <p className="font-mono bg-muted px-2 py-1 rounded text-sm">{selectedUser.username}</p>
+                                        </div>
+                                        <div>
+                                          <Label className="text-sm font-medium text-muted-foreground">Email Address</Label>
+                                          <p className="text-blue-600 dark:text-blue-400">{selectedUser.email}</p>
+                                        </div>
+                                        <div>
+                                          <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
+                                          <p>{selectedUser.phoneNumber}</p>
+                                        </div>
+                                      </div>
+                                      
+                                      <div className="space-y-4">
+                                        <div>
+                                          <Label className="text-sm font-medium text-muted-foreground">Profession</Label>
+                                          <p className="capitalize font-medium">{selectedUser.profession}</p>
+                                        </div>
+                                        <div>
+                                          <Label className="text-sm font-medium text-muted-foreground">Gender</Label>
+                                          <p className="capitalize">{selectedUser.gender}</p>
+                                        </div>
+                                        <div>
+                                          <Label className="text-sm font-medium text-muted-foreground">Province</Label>
+                                          <p>{selectedUser.province}</p>
+                                        </div>
+                                        <div>
+                                          <Label className="text-sm font-medium text-muted-foreground">District</Label>
+                                          <p>{selectedUser.district}</p>
+                                        </div>
+                                      </div>
                                     </div>
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">
-                                        Username
-                                      </Label>
-                                      <p className="font-mono">{selectedUser.username}</p>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">
-                                        Profession
-                                      </Label>
-                                      <p className="capitalize">{selectedUser.profession}</p>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">
-                                        Gender
-                                      </Label>
-                                      <p className="capitalize">{selectedUser.gender}</p>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">
-                                        Province
-                                      </Label>
-                                      <p>{selectedUser.province}</p>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">
-                                        District
-                                      </Label>
-                                      <p>{selectedUser.district}</p>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">
-                                        Registration Date
-                                      </Label>
-                                      <p>{new Date(selectedUser.registrationDate).toLocaleString()}</p>
-                                    </div>
-                                    <div>
-                                      <Label className="text-sm font-medium text-muted-foreground">
-                                        Status
-                                      </Label>
-                                      <Badge className={getStatusBadge(selectedUser.registrationStatus)}>
-                                        {selectedUser.registrationStatus}
-                                      </Badge>
+                                    
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                                      <div>
+                                        <Label className="text-sm font-medium text-muted-foreground">Registration Date</Label>
+                                        <p>{new Date(selectedUser.registrationDate).toLocaleString()}</p>
+                                      </div>
+                                      <div>
+                                        <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                                        <div className="flex items-center gap-2 mt-1">
+                                          <Badge className={getStatusBadge(selectedUser.registrationStatus)}>
+                                            {selectedUser.registrationStatus}
+                                          </Badge>
+                                          {selectedUser.emailVerified ? (
+                                            <span title="Email Verified" className="flex items-center gap-1 text-green-600 text-sm">
+                                              <CheckCircle className="w-4 h-4" />
+                                              Email Verified
+                                            </span>
+                                          ) : (
+                                            <span title="Email Not Verified" className="flex items-center gap-1 text-red-600 text-sm">
+                                              <XCircle className="w-4 h-4" />
+                                              Email Pending
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              )}
-                            </DialogContent>
-                          </Dialog>
+                                )}
+                              </DialogContent>
+                            </Dialog>
+                          </div>
 
-                          <Button 
-                            size="sm"
-                            onClick={() => handleApprove(user._id)}
-                            disabled={actionLoading}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            Approve
-                          </Button>
+                          <div className="flex items-center gap-2">
+                            <Button 
+                              size="sm"
+                              onClick={() => handleApprove(user._id)}
+                              disabled={actionLoading || !user.emailVerified}
+                              className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                              title={!user.emailVerified ? "Email verification required before approval" : "Approve registration"}
+                            >
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              Approve
+                            </Button>
 
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button 
-                                variant="destructive" 
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedUser(user);
-                                  setRejectionReason('');
-                                }}
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                Reject
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Reject Registration</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                                  <AlertTriangle className="w-5 h-5 text-red-600" />
-                                  <p className="text-sm text-red-600 dark:text-red-400">
-                                    You are about to reject the registration for <strong>{selectedUser?.fullName}</strong>
-                                  </p>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                  <Label htmlFor="rejectionReason">Reason for Rejection *</Label>
-                                  <Textarea
-                                    id="rejectionReason"
-                                    placeholder="Please provide a clear reason for rejecting this registration..."
-                                    value={rejectionReason}
-                                    onChange={(e) => setRejectionReason(e.target.value)}
-                                    rows={4}
-                                  />
-                                </div>
+                            <Dialog>
+                              <DialogTrigger asChild>
+                                <Button 
+                                  variant="destructive" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setRejectionReason('');
+                                  }}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  Reject
+                                </Button>
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Reject Registration</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                                    <p className="text-sm text-red-600 dark:text-red-400">
+                                      You are about to reject the registration for <strong>{selectedUser?.fullName}</strong>
+                                    </p>
+                                  </div>
+                                  
+                                  <div className="space-y-2">
+                                    <Label htmlFor="rejectionReason">Reason for Rejection *</Label>
+                                    <Textarea
+                                      id="rejectionReason"
+                                      placeholder="Please provide a clear reason for rejecting this registration..."
+                                      value={rejectionReason}
+                                      onChange={(e) => setRejectionReason(e.target.value)}
+                                      rows={4}
+                                    />
+                                  </div>
 
-                                <div className="flex justify-end gap-2">
-                                  <DialogTrigger asChild>
-                                    <Button variant="outline">Cancel</Button>
-                                  </DialogTrigger>
-                                  <Button 
-                                    variant="destructive"
-                                    onClick={() => selectedUser && handleReject(selectedUser._id)}
-                                    disabled={actionLoading || !rejectionReason.trim()}
-                                  >
-                                    {actionLoading ? 'Rejecting...' : 'Reject Registration'}
-                                  </Button>
+                                  <div className="flex justify-end gap-2">
+                                    <DialogTrigger asChild>
+                                      <Button variant="outline">Cancel</Button>
+                                    </DialogTrigger>
+                                    <Button 
+                                      variant="destructive"
+                                      onClick={() => selectedUser && handleReject(selectedUser._id)}
+                                      disabled={actionLoading || !rejectionReason.trim()}
+                                    >
+                                      {actionLoading ? 'Rejecting...' : 'Reject Registration'}
+                                    </Button>
+                                  </div>
                                 </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                              </DialogContent>
+                            </Dialog>
+                          </div>
                         </div>
                       </div>
                     </div>
