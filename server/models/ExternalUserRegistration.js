@@ -5,7 +5,6 @@ const externalUserSchema = new mongoose.Schema({
     username: {
         type: String,
         required: true,
-        unique: true,
         trim: true,
     },
     passwordHash: {
@@ -37,7 +36,6 @@ const externalUserSchema = new mongoose.Schema({
     email: {
         type: String,
         required: true,
-        unique: true,
         trim: true,
         lowercase: true,
         match: [/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/, 'Please enter a valid email']
@@ -76,29 +74,16 @@ const externalUserSchema = new mongoose.Schema({
     // Registration meta
     registrationStatus: {
         type: String,
-        enum: ['pending', 'approved', 'rejected', 'revoked'],
+        enum: ['pending', 'approved', 'rejected'],
         default: 'pending'
     },
     registrationDate: {
         type: Date,
         default: Date.now,
     },
-
-    // Approval/Rejection details
-    approvedBy: {
-        type: String
-    },
-    approvedAt: {
-        type: Date
-    },
     rejectionReason: {
         type: String
-    },
-
-    // Activity Tracking (Optional but good to have)
-    lastLogin: {
-        type: Date
     }
 });
 
-module.exports = mongoose.model('ExternalUser', externalUserSchema);
+module.exports = mongoose.model('ExternalUserRegistration', externalUserSchema);

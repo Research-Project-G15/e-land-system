@@ -3,6 +3,8 @@ const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+// const ExternalUserRegistration = require('../models/ExternalUserRegistration'); // Deprecated
+const ExternalUser = require('../models/ExternalUser');
 const AuditLog = require('../models/AuditLog');
 const auth = require('../middleware/authMiddleware');
 const requireSuperAdmin = require('../middleware/roleMiddleware');
@@ -11,16 +13,16 @@ const { generateOTP, sendOTPEmail, sendWelcomeEmail } = require('../services/ema
 // Register External User (Public endpoint)
 router.post('/register-external', async (req, res) => {
     try {
-        const { 
-            fullName, 
+        const {
+            fullName,
             email,
             phoneNumber,
-            username, 
-            password, 
-            profession, 
-            gender, 
-            province, 
-            district 
+            username,
+            password,
+            profession,
+            gender,
+            province,
+            district
         } = req.body;
 
         // Validate required fields
@@ -50,15 +52,17 @@ router.post('/register-external', async (req, res) => {
             return res.status(400).json({ message: 'Please enter a valid Sri Lankan phone number (+94xxxxxxxxx).' });
         }
 
-        // Check if username already exists
-        let existingUser = await User.findOne({ username });
-        if (existingUser) {
+        // Check unique username in BOTH collections
+        const existingUser = await User.findOne({ username });
+        const existingExternal = await ExternalUser.findOne({ username });
+        if (existingUser || existingExternal) {
             return res.status(400).json({ message: 'Username already exists. Please choose a different username.' });
         }
 
-        // Check if email already exists
-        existingUser = await User.findOne({ email });
-        if (existingUser) {
+        // Check unique email in BOTH collections
+        const existingEmail = await User.findOne({ email });
+        const existingExternalEmail = await ExternalUser.findOne({ email });
+        if (existingEmail || existingExternalEmail) {
             return res.status(400).json({ message: 'Email already registered. Please use a different email address.' });
         }
 
@@ -70,8 +74,8 @@ router.post('/register-external', async (req, res) => {
         const otp = generateOTP();
         const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-        // Create new external user with pending status
-        const user = new User({
+        // Create new external user in dedicated collection
+        const newUser = new ExternalUser({
             fullName,
             email,
             phoneNumber,
@@ -89,26 +93,28 @@ router.post('/register-external', async (req, res) => {
             emailVerificationExpires: otpExpires
         });
 
-        await user.save();
+        await newUser.save();
 
         // Send OTP email
         const emailSent = await sendOTPEmail(email, otp, fullName);
         if (!emailSent) {
-            return res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
+            // Rollback if email fails? Or just let them resend?
+            // For now, let's keep it and they can resend.
+            console.error('Failed to send verification email');
         }
 
         // Log registration
         const log = new AuditLog({
-            transactionId: `REG-EXT-${Date.now()}`,
+            transactionId: `REG-EXT-REQ-${Date.now()}`,
             action: 'create user',
             performedBy: 'system',
-            details: `External user registration submitted: ${username} (${profession}) - Email verification required`
+            details: `External user registration requested: ${username} (${profession}) - Stored in ExternalUser collection`
         });
         await log.save();
 
-        res.status(201).json({ 
+        res.status(201).json({
             message: 'Registration submitted successfully. Please check your email for the OTP verification code.',
-            registrationId: user._id
+            registrationId: newUser._id
         });
     } catch (err) {
         console.error('External registration error:', err.message);
@@ -120,15 +126,20 @@ router.post('/register-external', async (req, res) => {
 router.post('/verify-email', async (req, res) => {
     try {
         const { registrationId, otp } = req.body;
+        console.log(`[VERIFY-EMAIL] Request received for ID: ${registrationId}, OTP: ${otp}`);
 
         if (!registrationId || !otp) {
             return res.status(400).json({ message: 'Registration ID and OTP are required' });
         }
 
-        const user = await User.findById(registrationId);
+        // Check in ExternalUser collection
+        const user = await ExternalUser.findById(registrationId);
         if (!user) {
-            return res.status(404).json({ message: 'Registration not found' });
+            console.log(`[VERIFY-EMAIL] User not found: ${registrationId}`);
+            return res.status(404).json({ message: 'User not found' });
         }
+
+        console.log(`[VERIFY-EMAIL] User found: ${user.username}, Verified: ${user.emailVerified}, Token: ${user.emailVerificationToken}`);
 
         if (user.emailVerified) {
             return res.status(400).json({ message: 'Email already verified' });
@@ -150,15 +161,15 @@ router.post('/verify-email', async (req, res) => {
 
         // Log verification
         const log = new AuditLog({
-            transactionId: `VERIFY-${Date.now()}`,
-            action: 'create user',
-            performedBy: user.username,
+            transactionId: `VERIFY-EXT-${Date.now()}`,
+            action: 'verify email',
+            performedBy: 'system',
             details: `Email verified for external user: ${user.username} (${user.profession})`
         });
         await log.save();
 
-        res.json({ 
-            message: 'Email verified successfully! Your registration is now pending admin approval. You will receive a welcome email once approved.' 
+        res.json({
+            message: 'Email verified successfully! Your registration is now pending admin approval. You will receive a welcome email once approved.'
         });
     } catch (err) {
         console.error('Email verification error:', err.message);
@@ -175,9 +186,9 @@ router.post('/resend-otp', async (req, res) => {
             return res.status(400).json({ message: 'Registration ID is required' });
         }
 
-        const user = await User.findById(registrationId);
+        const user = await ExternalUser.findById(registrationId);
         if (!user) {
-            return res.status(404).json({ message: 'Registration not found' });
+            return res.status(404).json({ message: 'User not found' });
         }
 
         if (user.emailVerified) {
@@ -208,14 +219,30 @@ router.post('/resend-otp', async (req, res) => {
 // Get pending external user registrations (Admin only)
 router.get('/pending-registrations', auth, requireSuperAdmin, async (req, res) => {
     try {
-        const pendingUsers = await User.find({ 
-            userType: 'external', 
-            registrationStatus: 'pending' 
+        // Fetch from ExternalUser collection
+        const pendingUsers = await ExternalUser.find({
+            registrationStatus: 'pending',
+            emailVerified: true // Only show verified emails
         }).select('-passwordHash').sort({ registrationDate: -1 });
 
         res.json(pendingUsers);
     } catch (err) {
         console.error('Error fetching pending registrations:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Get active external users (Admin only)
+router.get('/active-external-users', auth, requireSuperAdmin, async (req, res) => {
+    try {
+        // Fetch from ExternalUser collection
+        const activeUsers = await ExternalUser.find({
+            registrationStatus: 'approved'
+        }).select('-passwordHash').sort({ approvedAt: -1 });
+
+        res.json(activeUsers);
+    } catch (err) {
+        console.error('Error fetching active external users:', err.message);
         res.status(500).json({ message: 'Server error' });
     }
 });
@@ -226,23 +253,25 @@ router.post('/approve-registration/:userId', auth, requireSuperAdmin, async (req
         const { userId } = req.params;
         const adminUsername = req.user.user.username;
 
-        const user = await User.findById(userId);
+        // Find in ExternalUser
+        const user = await ExternalUser.findById(userId);
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'User request not found' });
         }
 
-        if (user.registrationStatus !== 'pending') {
-            return res.status(400).json({ message: 'User registration is not pending' });
+        if (user.registrationStatus === 'approved') {
+            return res.status(400).json({ message: 'User is already approved' });
         }
 
         if (!user.emailVerified) {
-            return res.status(400).json({ message: 'User email is not verified yet' });
+            return res.status(400).json({ message: 'User email is not verified yet. Cannot approve.' });
         }
 
-        // Approve the user
+        // UPDATE STATUS IN EXTERNAL USER COLLECTION (Do NOT move to User table)
         user.registrationStatus = 'approved';
         user.approvedBy = adminUsername;
         user.approvedAt = new Date();
+
         await user.save();
 
         // Send welcome email
@@ -254,16 +283,16 @@ router.post('/approve-registration/:userId', auth, requireSuperAdmin, async (req
         // Log approval
         const log = new AuditLog({
             transactionId: `APPROVE-${Date.now()}`,
-            action: 'create user',
+            action: 'approve user',
             performedBy: adminUsername,
-            details: `External user approved: ${user.username} (${user.profession}) - Welcome email sent`
+            details: `External user approved: ${user.username} (${user.profession})`
         });
         await log.save();
 
-        res.json({ message: 'User registration approved successfully and welcome email sent' });
+        res.json({ message: 'User approved successfully. User can now login.' });
     } catch (err) {
         console.error('Error approving registration:', err.message);
-        res.status(500).json({ message: 'Server error' });
+        res.status(500).json({ message: 'Server error: ' + err.message });
     }
 });
 
@@ -278,16 +307,12 @@ router.post('/reject-registration/:userId', auth, requireSuperAdmin, async (req,
             return res.status(400).json({ message: 'Rejection reason is required' });
         }
 
-        const user = await User.findById(userId);
+        const user = await ExternalUser.findById(userId);
         if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+            return res.status(404).json({ message: 'User request not found' });
         }
 
-        if (user.registrationStatus !== 'pending') {
-            return res.status(400).json({ message: 'User registration is not pending' });
-        }
-
-        // Reject the user
+        // Mark as rejected in ExternalUser
         user.registrationStatus = 'rejected';
         user.rejectionReason = reason;
         await user.save();
@@ -295,9 +320,9 @@ router.post('/reject-registration/:userId', auth, requireSuperAdmin, async (req,
         // Log rejection
         const log = new AuditLog({
             transactionId: `REJECT-${Date.now()}`,
-            action: 'create user',
+            action: 'reject user',
             performedBy: adminUsername,
-            details: `External user rejected: ${user.username} (${user.profession}) - Reason: ${reason}`
+            details: `External user registration rejected: ${user.username} - Reason: ${reason}`
         });
         await log.save();
 
@@ -305,52 +330,6 @@ router.post('/reject-registration/:userId', auth, requireSuperAdmin, async (req,
     } catch (err) {
         console.error('Error rejecting registration:', err.message);
         res.status(500).json({ message: 'Server error' });
-    }
-});
-
-// Register External User (Lawyer/Notary)
-router.post('/register-external-old', async (req, res) => {
-    try {
-        const { username, password, profession } = req.body;
-
-        // Validate profession
-        if (!['lawyer', 'notary'].includes(profession)) {
-            return res.status(400).json({ message: 'Invalid profession. Must be lawyer or notary.' });
-        }
-
-        // Check if user exists
-        let user = await User.findOne({ username });
-        if (user) {
-            return res.status(400).json({ message: 'User already exists' });
-        }
-
-        // Hash password
-        const salt = await bcrypt.genSalt(10);
-        const passwordHash = await bcrypt.hash(password, salt);
-
-        user = new User({
-            username,
-            passwordHash,
-            role: profession,
-            userType: 'external',
-            profession
-        });
-
-        await user.save();
-
-        // Log registration
-        const log = new AuditLog({
-            transactionId: `REG-EXT-${Date.now()}`,
-            action: 'create user',
-            performedBy: 'system',
-            details: `External user registered: ${username} (${profession})`
-        });
-        await log.save();
-
-        res.status(201).json({ message: `${profession} user registered successfully` });
-    } catch (err) {
-        console.error(err.message);
-        res.status(500).send('Server Error');
     }
 });
 
@@ -384,58 +363,64 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login Admin (Internal Users)
+// Login (Internal AND External Users)
 router.post('/login', async (req, res) => {
     try {
         let { username, password } = req.body;
-
-        // Trim username to handle accidental whitespace
         username = username ? username.trim() : '';
+        console.log(`[LOGIN ATTEMPT] Username: '${username}'`);
 
-        console.log(`[LOGIN ATTEMPT] Username: '${username}', Password provided: ${!!password}`);
+        let user = null;
+        let isExternal = false;
 
-        // Check if user exists
-        const user = await User.findOne({ username });
+        // 1. Try finding in INTERNAL User collection
+        user = await User.findOne({ username });
+
+        // 2. If not found, try EXTERNAL User collection
+        if (!user) {
+            user = await ExternalUser.findOne({ username });
+            if (user) {
+                isExternal = true;
+            }
+        }
+
         if (!user) {
             console.log(`[LOGIN FAILED] User not found: '${username}'`);
-            return res.status(400).json({ message: 'Invalid credentials - User not found' });
+            return res.status(400).json({ message: 'Invalid credentials' });
         }
-        console.log(`[LOGIN] User found: ${user.username}, Hash: ${user.passwordHash.substring(0, 10)}...`);
+
+        // If External, perform additional checks
+        if (isExternal) {
+            if (!user.emailVerified) {
+                return res.status(403).json({ message: 'Email not verified yet.' });
+            }
+            if (user.registrationStatus === 'pending') {
+                return res.status(403).json({ message: 'Account pending admin approval.' });
+            }
+            if (user.registrationStatus === 'rejected') {
+                return res.status(403).json({ message: 'Account application rejected.' });
+            }
+            if (user.registrationStatus !== 'approved') {
+                return res.status(403).json({ message: 'Account access restricted.' });
+            }
+        }
+
+        console.log(`[LOGIN] User found: ${user.username} (${isExternal ? 'External' : 'Internal'})`);
 
         // Validate password
         const isMatch = await bcrypt.compare(password, user.passwordHash);
         if (!isMatch) {
             console.log(`[LOGIN FAILED] Password mismatch for user: '${username}'`);
-            return res.status(400).json({ message: 'Invalid credentials - Password incorrect' });
+            return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        // Check if external user is approved and email verified
-        if (user.userType === 'external') {
-            if (!user.emailVerified) {
-                return res.status(403).json({ 
-                    message: 'Please verify your email address before logging in. Check your email for the OTP.' 
-                });
-            }
-            if (user.registrationStatus !== 'approved') {
-                if (user.registrationStatus === 'pending') {
-                    return res.status(403).json({ 
-                        message: 'Your account is pending admin approval. Please wait for approval before logging in.' 
-                    });
-                } else if (user.registrationStatus === 'rejected') {
-                    return res.status(403).json({ 
-                        message: 'Your account registration has been rejected. Please contact support for more information.' 
-                    });
-                }
-            }
-        }
-
-        // Create Token
+        // Create Token Payload
         const payload = {
             user: {
                 id: user.id,
                 username: user.username,
                 role: user.role,
-                userType: user.userType || 'internal',
+                userType: isExternal ? 'external' : (user.userType || 'internal'),
                 profession: user.profession
             }
         };
@@ -445,9 +430,15 @@ router.post('/login', async (req, res) => {
             transactionId: `LOGIN-${Date.now()}`,
             action: 'login',
             performedBy: user.username,
-            details: 'Admin login successful'
+            details: 'Login successful'
         });
         await log.save();
+
+        // Update last login if external
+        if (isExternal) {
+            user.lastLogin = new Date();
+            await user.save();
+        }
 
         jwt.sign(
             payload,
@@ -460,7 +451,7 @@ router.post('/login', async (req, res) => {
                     user: {
                         username: user.username,
                         role: user.role,
-                        userType: user.userType || 'internal',
+                        userType: isExternal ? 'external' : (user.userType || 'internal'),
                         profession: user.profession,
                         mustChangePassword: user.mustChangePassword
                     }
@@ -499,10 +490,7 @@ router.post('/create-user', require('../middleware/authMiddleware'), require('..
 
         await user.save();
 
-        await user.save();
-
         // Fetch performing user details (Super Admin)
-        // If username is in token (new logins), use it. If not (old sessions), fetch from DB.
         let performedBy = req.user.user.username;
         if (!performedBy) {
             const superAdmin = await User.findById(req.user.user.id);
@@ -602,7 +590,10 @@ router.delete('/users/:id', require('../middleware/authMiddleware'), require('..
 // Get All Admin Users (Super Admin Only)
 router.get('/users', require('../middleware/authMiddleware'), require('../middleware/roleMiddleware'), async (req, res) => {
     try {
-        const users = await User.find({ role: { $ne: 'superadmin' } }).select('-passwordHash'); // Exclude superadmin from list if desired, or include all
+        const users = await User.find({
+            role: { $ne: 'superadmin' },
+            userType: 'internal' // Only show internal admin users
+        }).select('-passwordHash');
         res.json(users);
     } catch (err) {
         console.error(err.message);

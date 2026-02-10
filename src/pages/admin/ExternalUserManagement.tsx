@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Users, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Eye, 
-  UserCheck, 
+import {
+  Users,
+  Clock,
+  CheckCircle,
+  XCircle,
+  Eye,
+  UserCheck,
   UserX,
   Calendar,
   MapPin,
@@ -45,6 +45,8 @@ interface ExternalUser {
 const ExternalUserManagement = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [activeUsers, setActiveUsers] = useState<ExternalUser[]>([]);
+  const [activeTab, setActiveTab] = useState<'pending' | 'active'>('pending');
   const [pendingUsers, setPendingUsers] = useState<ExternalUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<ExternalUser | null>(null);
@@ -54,7 +56,7 @@ const ExternalUserManagement = () => {
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('isAdminLoggedIn');
     const userRole = localStorage.getItem('userRole');
-    
+
     if (!isLoggedIn) {
       navigate('/admin/login');
       return;
@@ -69,6 +71,7 @@ const ExternalUserManagement = () => {
     }
 
     fetchPendingUsers();
+    fetchActiveUsers();
   }, [navigate, toast]);
 
   const fetchPendingUsers = async () => {
@@ -82,6 +85,20 @@ const ExternalUserManagement = () => {
         description: "Failed to fetch pending registrations",
         variant: "destructive",
       });
+    }
+  };
+
+  const fetchActiveUsers = async () => {
+    try {
+      const response = await api.get('/auth/active-external-users');
+      setActiveUsers(response.data);
+    } catch (error) {
+      console.error('Error fetching active users:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch active users",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -91,14 +108,15 @@ const ExternalUserManagement = () => {
     setActionLoading(true);
     try {
       await api.post(`/auth/approve-registration/${userId}`);
-      
+
       toast({
         title: "Success",
         description: "User registration approved successfully",
       });
-      
-      // Remove from pending list
+
+      // Remove from pending list and refresh active list
       setPendingUsers(prev => prev.filter(user => user._id !== userId));
+      fetchActiveUsers();
     } catch (error: any) {
       console.error('Error approving user:', error);
       toast({
@@ -126,12 +144,12 @@ const ExternalUserManagement = () => {
       await api.post(`/auth/reject-registration/${userId}`, {
         reason: rejectionReason
       });
-      
+
       toast({
         title: "Success",
         description: "User registration rejected",
       });
-      
+
       // Remove from pending list
       setPendingUsers(prev => prev.filter(user => user._id !== userId));
       setRejectionReason('');
@@ -182,320 +200,402 @@ const ExternalUserManagement = () => {
         <div className="flex flex-col lg:flex-row gap-8">
           <Sidebar />
           <div className="flex-1 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
-              External User Management
-            </h1>
-            <p className="text-gray-600 dark:text-gray-400">
-              Review and approve external user registrations
-            </p>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Pending Registrations</p>
-                  <p className="text-2xl font-bold">{pendingUsers.length}</p>
-                </div>
-                <Clock className="w-8 h-8 text-yellow-500" />
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                  External User Management
+                </h1>
+                <p className="text-gray-600 dark:text-gray-400">
+                  Manage external user registrations and active accounts
+                </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Lawyers</p>
-                  <p className="text-2xl font-bold">
-                    {pendingUsers.filter(u => u.profession === 'lawyer').length}
-                  </p>
-                </div>
-                <Scale className="w-8 h-8 text-blue-500" />
-              </div>
-            </CardContent>
-          </Card>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Pending Registrations</p>
+                      <p className="text-2xl font-bold">{pendingUsers.length}</p>
+                    </div>
+                    <Clock className="w-8 h-8 text-yellow-500" />
+                  </div>
+                </CardContent>
+              </Card>
 
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground">Notaries</p>
-                  <p className="text-2xl font-bold">
-                    {pendingUsers.filter(u => u.profession === 'notary').length}
-                  </p>
-                </div>
-                <Users className="w-8 h-8 text-green-500" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Active Users</p>
+                      <p className="text-2xl font-bold">{activeUsers.length}</p>
+                    </div>
+                    <UserCheck className="w-8 h-8 text-green-500" />
+                  </div>
+                </CardContent>
+              </Card>
 
-        {/* Pending Registrations */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Pending Registrations ({pendingUsers.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {pendingUsers.length === 0 ? (
-              <div className="text-center py-8">
-                <UserCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">No pending registrations</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {pendingUsers.map((user) => {
-                  const ProfessionIcon = getProfessionIcon(user.profession);
-                  return (
-                    <div
-                      key={user._id}
-                      className="border rounded-lg p-6 hover:bg-muted/50 transition-colors"
-                    >
-                      <div className="space-y-4">
-                        {/* Header Row */}
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full">
-                              <ProfessionIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
-                            </div>
-                            <div>
-                              <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{user.fullName}</h3>
-                              <p className="text-sm text-muted-foreground">@{user.username}</p>
-                            </div>
-                          </div>
-                          
-                          <div className="flex items-center gap-2">
-                            <Badge className={getStatusBadge(user.registrationStatus)}>
-                              {user.registrationStatus}
-                            </Badge>
-                            {user.emailVerified ? (
-                              <span title="Email Verified">
-                                <CheckCircle className="w-5 h-5 text-green-500" />
-                              </span>
-                            ) : (
-                              <span title="Email Not Verified">
-                                <XCircle className="w-5 h-5 text-red-500" />
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {/* Details Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Scale className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-muted-foreground">Profession:</span>
-                              <span className="font-medium capitalize">{user.profession}</span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-sm">
-                              <MapPin className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-muted-foreground">Location:</span>
-                              <span className="font-medium">{user.district}, {user.province}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-muted-foreground">Email:</span>
-                              <span className="font-medium text-blue-600 dark:text-blue-400">{user.email}</span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-muted-foreground">Phone:</span>
-                              <span className="font-medium">{user.phoneNumber}</span>
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-2 text-sm">
-                              <Calendar className="w-4 h-4 text-muted-foreground" />
-                              <span className="text-muted-foreground">Applied:</span>
-                              <span className="font-medium">{new Date(user.registrationDate).toLocaleDateString()}</span>
-                            </div>
-                            
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-muted-foreground">Gender:</span>
-                              <span className="font-medium capitalize">{user.gender}</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Action Buttons */}
-                        <div className="flex items-center justify-between pt-4 border-t">
-                          <div className="flex items-center gap-2">
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="outline" 
-                                  size="sm"
-                                  onClick={() => setSelectedUser(user)}
-                                >
-                                  <Eye className="w-4 h-4 mr-2" />
-                                  View Details
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-2xl">
-                                <DialogHeader>
-                                  <DialogTitle>Registration Details - {selectedUser?.fullName}</DialogTitle>
-                                </DialogHeader>
-                                {selectedUser && (
-                                  <div className="space-y-6">
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                      <div className="space-y-4">
-                                        <div>
-                                          <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
-                                          <p className="font-medium text-lg">{selectedUser.fullName}</p>
-                                        </div>
-                                        <div>
-                                          <Label className="text-sm font-medium text-muted-foreground">Username</Label>
-                                          <p className="font-mono bg-muted px-2 py-1 rounded text-sm">{selectedUser.username}</p>
-                                        </div>
-                                        <div>
-                                          <Label className="text-sm font-medium text-muted-foreground">Email Address</Label>
-                                          <p className="text-blue-600 dark:text-blue-400">{selectedUser.email}</p>
-                                        </div>
-                                        <div>
-                                          <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
-                                          <p>{selectedUser.phoneNumber}</p>
-                                        </div>
-                                      </div>
-                                      
-                                      <div className="space-y-4">
-                                        <div>
-                                          <Label className="text-sm font-medium text-muted-foreground">Profession</Label>
-                                          <p className="capitalize font-medium">{selectedUser.profession}</p>
-                                        </div>
-                                        <div>
-                                          <Label className="text-sm font-medium text-muted-foreground">Gender</Label>
-                                          <p className="capitalize">{selectedUser.gender}</p>
-                                        </div>
-                                        <div>
-                                          <Label className="text-sm font-medium text-muted-foreground">Province</Label>
-                                          <p>{selectedUser.province}</p>
-                                        </div>
-                                        <div>
-                                          <Label className="text-sm font-medium text-muted-foreground">District</Label>
-                                          <p>{selectedUser.district}</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
-                                      <div>
-                                        <Label className="text-sm font-medium text-muted-foreground">Registration Date</Label>
-                                        <p>{new Date(selectedUser.registrationDate).toLocaleString()}</p>
-                                      </div>
-                                      <div>
-                                        <Label className="text-sm font-medium text-muted-foreground">Status</Label>
-                                        <div className="flex items-center gap-2 mt-1">
-                                          <Badge className={getStatusBadge(selectedUser.registrationStatus)}>
-                                            {selectedUser.registrationStatus}
-                                          </Badge>
-                                          {selectedUser.emailVerified ? (
-                                            <span title="Email Verified" className="flex items-center gap-1 text-green-600 text-sm">
-                                              <CheckCircle className="w-4 h-4" />
-                                              Email Verified
-                                            </span>
-                                          ) : (
-                                            <span title="Email Not Verified" className="flex items-center gap-1 text-red-600 text-sm">
-                                              <XCircle className="w-4 h-4" />
-                                              Email Pending
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Total Lawyers</p>
+                      <p className="text-2xl font-bold">
+                        {activeUsers.filter(u => u.profession === 'lawyer').length + pendingUsers.filter(u => u.profession === 'lawyer').length}
+                      </p>
+                    </div>
+                    <Scale className="w-8 h-8 text-blue-500" />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex space-x-1 rounded-xl bg-blue-900/20 p-1">
+              <button
+                onClick={() => setActiveTab('pending')}
+                className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === 'pending'
+                  ? 'bg-white text-blue-700 shadow dark:bg-gray-800 dark:text-blue-100'
+                  : 'text-blue-100 hover:bg-white/[0.12] hover:text-white dark:text-blue-400'
+                  }`}
+              >
+                Pending Registrations ({pendingUsers.length})
+              </button>
+              <button
+                onClick={() => setActiveTab('active')}
+                className={`w-full rounded-lg py-2.5 text-sm font-medium leading-5 ring-white ring-opacity-60 ring-offset-2 ring-offset-blue-400 focus:outline-none focus:ring-2 ${activeTab === 'active'
+                  ? 'bg-white text-blue-700 shadow dark:bg-gray-800 dark:text-blue-100'
+                  : 'text-blue-100 hover:bg-white/[0.12] hover:text-white dark:text-blue-400'
+                  }`}
+              >
+                Active Users ({activeUsers.length})
+              </button>
+            </div>
+
+            {/* Content */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {activeTab === 'pending' ? <Clock className="w-5 h-5" /> : <UserCheck className="w-5 h-5" />}
+                  {activeTab === 'pending' ? 'Pending Registrations' : 'Active External Users'}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {activeTab === 'pending' ? (
+                  // Pending Users List
+                  pendingUsers.length === 0 ? (
+                    <div className="text-center py-8">
+                      <CheckCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No pending registrations</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {pendingUsers.map((user) => {
+                        const ProfessionIcon = getProfessionIcon(user.profession);
+                        return (
+                          <div
+                            key={user._id}
+                            className="border rounded-lg p-6 hover:bg-muted/50 transition-colors"
+                          >
+                            <div className="space-y-4">
+                              {/* Header Row */}
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center justify-center w-12 h-12 bg-blue-100 dark:bg-blue-900/20 rounded-full">
+                                    <ProfessionIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                                   </div>
-                                )}
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <Button 
-                              size="sm"
-                              onClick={() => handleApprove(user._id)}
-                              disabled={actionLoading || !user.emailVerified}
-                              className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
-                              title={!user.emailVerified ? "Email verification required before approval" : "Approve registration"}
-                            >
-                              <CheckCircle className="w-4 h-4 mr-2" />
-                              Approve
-                            </Button>
-
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button 
-                                  variant="destructive" 
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedUser(user);
-                                    setRejectionReason('');
-                                  }}
-                                >
-                                  <XCircle className="w-4 h-4 mr-2" />
-                                  Reject
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent>
-                                <DialogHeader>
-                                  <DialogTitle>Reject Registration</DialogTitle>
-                                </DialogHeader>
-                                <div className="space-y-4">
-                                  <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                                    <AlertTriangle className="w-5 h-5 text-red-600" />
-                                    <p className="text-sm text-red-600 dark:text-red-400">
-                                      You are about to reject the registration for <strong>{selectedUser?.fullName}</strong>
-                                    </p>
-                                  </div>
-                                  
-                                  <div className="space-y-2">
-                                    <Label htmlFor="rejectionReason">Reason for Rejection *</Label>
-                                    <Textarea
-                                      id="rejectionReason"
-                                      placeholder="Please provide a clear reason for rejecting this registration..."
-                                      value={rejectionReason}
-                                      onChange={(e) => setRejectionReason(e.target.value)}
-                                      rows={4}
-                                    />
-                                  </div>
-
-                                  <div className="flex justify-end gap-2">
-                                    <DialogTrigger asChild>
-                                      <Button variant="outline">Cancel</Button>
-                                    </DialogTrigger>
-                                    <Button 
-                                      variant="destructive"
-                                      onClick={() => selectedUser && handleReject(selectedUser._id)}
-                                      disabled={actionLoading || !rejectionReason.trim()}
-                                    >
-                                      {actionLoading ? 'Rejecting...' : 'Reject Registration'}
-                                    </Button>
+                                  <div>
+                                    <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{user.fullName}</h3>
+                                    <p className="text-sm text-muted-foreground">@{user.username}</p>
                                   </div>
                                 </div>
-                              </DialogContent>
-                            </Dialog>
+
+                                <div className="flex items-center gap-2">
+                                  <Badge className={getStatusBadge(user.registrationStatus)}>
+                                    {user.registrationStatus}
+                                  </Badge>
+                                  {user.emailVerified ? (
+                                    <span title="Email Verified">
+                                      <CheckCircle className="w-5 h-5 text-green-500" />
+                                    </span>
+                                  ) : (
+                                    <span title="Email Not Verified">
+                                      <XCircle className="w-5 h-5 text-red-500" />
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Details Grid */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <Scale className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-muted-foreground">Profession:</span>
+                                    <span className="font-medium capitalize">{user.profession}</span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <MapPin className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-muted-foreground">Location:</span>
+                                    <span className="font-medium">{user.district}, {user.province}</span>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-muted-foreground">Email:</span>
+                                    <span className="font-medium text-blue-600 dark:text-blue-400">{user.email}</span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-muted-foreground">Phone:</span>
+                                    <span className="font-medium">{user.phoneNumber}</span>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-muted-foreground">Applied:</span>
+                                    <span className="font-medium">{new Date(user.registrationDate).toLocaleDateString()}</span>
+                                  </div>
+
+                                  <div className="flex items-center gap-2 text-sm">
+                                    <span className="text-muted-foreground">Gender:</span>
+                                    <span className="font-medium capitalize">{user.gender}</span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Action Buttons */}
+                              <div className="flex items-center justify-between pt-4 border-t">
+                                <div className="flex items-center gap-2">
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSelectedUser(user)}
+                                      >
+                                        <Eye className="w-4 h-4 mr-2" />
+                                        View Details
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="max-w-2xl">
+                                      <DialogHeader>
+                                        <DialogTitle>Registration Details - {selectedUser?.fullName}</DialogTitle>
+                                      </DialogHeader>
+                                      {selectedUser && (
+                                        <div className="space-y-6">
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-4">
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Full Name</Label>
+                                                <p className="font-medium text-lg">{selectedUser.fullName}</p>
+                                              </div>
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Username</Label>
+                                                <p className="font-mono bg-muted px-2 py-1 rounded text-sm">{selectedUser.username}</p>
+                                              </div>
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Email Address</Label>
+                                                <p className="text-blue-600 dark:text-blue-400">{selectedUser.email}</p>
+                                              </div>
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Phone Number</Label>
+                                                <p>{selectedUser.phoneNumber}</p>
+                                              </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Profession</Label>
+                                                <p className="capitalize font-medium">{selectedUser.profession}</p>
+                                              </div>
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Gender</Label>
+                                                <p className="capitalize">{selectedUser.gender}</p>
+                                              </div>
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">Province</Label>
+                                                <p>{selectedUser.province}</p>
+                                              </div>
+                                              <div>
+                                                <Label className="text-sm font-medium text-muted-foreground">District</Label>
+                                                <p>{selectedUser.district}</p>
+                                              </div>
+                                            </div>
+                                          </div>
+
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t">
+                                            <div>
+                                              <Label className="text-sm font-medium text-muted-foreground">Registration Date</Label>
+                                              <p>{new Date(selectedUser.registrationDate).toLocaleString()}</p>
+                                            </div>
+                                            <div>
+                                              <Label className="text-sm font-medium text-muted-foreground">Status</Label>
+                                              <div className="flex items-center gap-2 mt-1">
+                                                <Badge className={getStatusBadge(selectedUser.registrationStatus)}>
+                                                  {selectedUser.registrationStatus}
+                                                </Badge>
+                                                {selectedUser.emailVerified ? (
+                                                  <span title="Email Verified" className="flex items-center gap-1 text-green-600 text-sm">
+                                                    <CheckCircle className="w-4 h-4" />
+                                                    Email Verified
+                                                  </span>
+                                                ) : (
+                                                  <span title="Email Not Verified" className="flex items-center gap-1 text-red-600 text-sm">
+                                                    <XCircle className="w-4 h-4" />
+                                                    Email Pending
+                                                  </span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      )}
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    onClick={() => handleApprove(user._id)}
+                                    disabled={actionLoading || !user.emailVerified}
+                                    className="bg-green-600 hover:bg-green-700 disabled:opacity-50"
+                                    title={!user.emailVerified ? "Email verification required before approval" : "Approve registration"}
+                                  >
+                                    <CheckCircle className="w-4 h-4 mr-2" />
+                                    Approve
+                                  </Button>
+
+                                  <Dialog>
+                                    <DialogTrigger asChild>
+                                      <Button
+                                        variant="destructive"
+                                        size="sm"
+                                        onClick={() => {
+                                          setSelectedUser(user);
+                                          setRejectionReason('');
+                                        }}
+                                      >
+                                        <XCircle className="w-4 h-4 mr-2" />
+                                        Reject
+                                      </Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                      <DialogHeader>
+                                        <DialogTitle>Reject Registration</DialogTitle>
+                                      </DialogHeader>
+                                      <div className="space-y-4">
+                                        <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
+                                          <AlertTriangle className="w-5 h-5 text-red-600" />
+                                          <p className="text-sm text-red-600 dark:text-red-400">
+                                            You are about to reject the registration for <strong>{selectedUser?.fullName}</strong>
+                                          </p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                          <Label htmlFor="rejectionReason">Reason for Rejection *</Label>
+                                          <Textarea
+                                            id="rejectionReason"
+                                            placeholder="Please provide a clear reason for rejecting this registration..."
+                                            value={rejectionReason}
+                                            onChange={(e) => setRejectionReason(e.target.value)}
+                                            rows={4}
+                                          />
+                                        </div>
+
+                                        <div className="flex justify-end gap-2">
+                                          <DialogTrigger asChild>
+                                            <Button variant="outline">Cancel</Button>
+                                          </DialogTrigger>
+                                          <Button
+                                            variant="destructive"
+                                            onClick={() => selectedUser && handleReject(selectedUser._id)}
+                                            disabled={actionLoading || !rejectionReason.trim()}
+                                          >
+                                            {actionLoading ? 'Rejecting...' : 'Reject Registration'}
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    </DialogContent>
+                                  </Dialog>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                  )
+                ) : (
+                  // Active Users List
+                  activeUsers.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No active external users found</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {activeUsers.map((user) => {
+                        const ProfessionIcon = getProfessionIcon(user.profession);
+                        return (
+                          <div key={user._id} className="border rounded-lg p-6 hover:bg-muted/50 transition-colors">
+                            <div className="space-y-4">
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3">
+                                  <div className="flex items-center justify-center w-12 h-12 bg-green-100 dark:bg-green-900/20 rounded-full">
+                                    <ProfessionIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2">
+                                      <h3 className="font-semibold text-lg text-gray-900 dark:text-white">{user.fullName}</h3>
+                                      <Badge className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">Active</Badge>
+                                    </div>
+                                    <p className="text-sm text-muted-foreground">@{user.username}</p>
+                                  </div>
+                                </div>
+                                <div>
+                                  {user.approvedBy && (
+                                    <p className="text-xs text-muted-foreground text-right">
+                                      Approved by {user.approvedBy}<br />
+                                      {new Date(user.approvedAt || '').toLocaleDateString()}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="space-y-2">
+                                  <p className="text-sm text-muted-foreground">Contact</p>
+                                  <p className="text-sm font-medium">{user.email}</p>
+                                  <p className="text-sm font-medium">{user.phoneNumber}</p>
+                                </div>
+                                <div className="space-y-2">
+                                  <p className="text-sm text-muted-foreground">Professional Info</p>
+                                  <p className="text-sm font-medium capitalize">{user.profession}</p>
+                                  <p className="text-sm font-medium">{user.district}, {user.province}</p>
+                                </div>
+                                <div className="space-y-2">
+                                  <p className="text-sm text-muted-foreground">Actions</p>
+                                  <Button variant="outline" size="sm" disabled>View Activity</Button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )
+                )}
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

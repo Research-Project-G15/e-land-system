@@ -36,6 +36,7 @@ const generateVerificationToken = () => {
 const sendOTPEmail = async (email, otp, fullName) => {
     try {
         // Check if email configuration is set up
+        // FORCE MOCK FOR TESTING to avoid hanging
         if (!process.env.EMAIL_USER || process.env.EMAIL_USER === 'your-email@gmail.com') {
             console.warn('Email service not configured. OTP would be sent to:', email);
             console.log(`OTP for ${fullName}: ${otp}`);
@@ -43,7 +44,7 @@ const sendOTPEmail = async (email, otp, fullName) => {
         }
 
         const transporter = createTransporter();
-        
+
         const mailOptions = {
             from: process.env.EMAIL_USER || 'noreply@eland-system.lk',
             to: email,
@@ -124,7 +125,7 @@ const sendWelcomeEmail = async (email, fullName, username, profession) => {
         }
 
         const transporter = createTransporter();
-        
+
         const mailOptions = {
             from: process.env.EMAIL_USER || 'noreply@eland-system.lk',
             to: email,

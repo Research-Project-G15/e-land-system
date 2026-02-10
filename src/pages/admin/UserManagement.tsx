@@ -176,7 +176,7 @@ const UserManagement = () => {
                     <main className="flex-1 min-w-0">
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
                             <div>
-                                <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+                                <h1 className="text-3xl font-bold tracking-tight">Admin User Management</h1>
                                 <p className="text-muted-foreground mt-1">Manage system administrators and access.</p>
                             </div>
 
