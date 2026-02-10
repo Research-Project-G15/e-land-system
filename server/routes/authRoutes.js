@@ -4,9 +4,312 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const AuditLog = require('../models/AuditLog');
+const auth = require('../middleware/authMiddleware');
+const requireSuperAdmin = require('../middleware/roleMiddleware');
+const { generateOTP, sendOTPEmail, sendWelcomeEmail } = require('../services/emailService');
+
+// Register External User (Public endpoint)
+router.post('/register-external', async (req, res) => {
+    try {
+        const { 
+            fullName, 
+            email,
+            phoneNumber,
+            username, 
+            password, 
+            profession, 
+            gender, 
+            province, 
+            district 
+        } = req.body;
+
+        // Validate required fields
+        if (!fullName || !email || !phoneNumber || !username || !password || !profession || !gender || !province || !district) {
+            return res.status(400).json({ message: 'All fields are required' });
+        }
+
+        // Validate profession
+        if (!['lawyer', 'notary'].includes(profession)) {
+            return res.status(400).json({ message: 'Invalid profession. Must be lawyer or notary.' });
+        }
+
+        // Validate gender
+        if (!['male', 'female', 'other'].includes(gender)) {
+            return res.status(400).json({ message: 'Invalid gender selection.' });
+        }
+
+        // Validate email format
+        const emailRegex = /^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ message: 'Please enter a valid email address.' });
+        }
+
+        // Validate Sri Lankan phone number
+        const phoneRegex = /^\+94[0-9]{9}$/;
+        if (!phoneRegex.test(phoneNumber)) {
+            return res.status(400).json({ message: 'Please enter a valid Sri Lankan phone number (+94xxxxxxxxx).' });
+        }
+
+        // Check if username already exists
+        let existingUser = await User.findOne({ username });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Username already exists. Please choose a different username.' });
+        }
+
+        // Check if email already exists
+        existingUser = await User.findOne({ email });
+        if (existingUser) {
+            return res.status(400).json({ message: 'Email already registered. Please use a different email address.' });
+        }
+
+        // Hash password
+        const salt = await bcrypt.genSalt(10);
+        const passwordHash = await bcrypt.hash(password, salt);
+
+        // Generate OTP
+        const otp = generateOTP();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        // Create new external user with pending status
+        const user = new User({
+            fullName,
+            email,
+            phoneNumber,
+            username,
+            passwordHash,
+            role: profession,
+            userType: 'external',
+            profession,
+            gender,
+            province,
+            district,
+            registrationStatus: 'pending',
+            emailVerified: false,
+            emailVerificationToken: otp,
+            emailVerificationExpires: otpExpires
+        });
+
+        await user.save();
+
+        // Send OTP email
+        const emailSent = await sendOTPEmail(email, otp, fullName);
+        if (!emailSent) {
+            return res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
+        }
+
+        // Log registration
+        const log = new AuditLog({
+            transactionId: `REG-EXT-${Date.now()}`,
+            action: 'create user',
+            performedBy: 'system',
+            details: `External user registration submitted: ${username} (${profession}) - Email verification required`
+        });
+        await log.save();
+
+        res.status(201).json({ 
+            message: 'Registration submitted successfully. Please check your email for the OTP verification code.',
+            registrationId: user._id
+        });
+    } catch (err) {
+        console.error('External registration error:', err.message);
+        res.status(500).json({ message: 'Server error during registration' });
+    }
+});
+
+// Verify Email with OTP
+router.post('/verify-email', async (req, res) => {
+    try {
+        const { registrationId, otp } = req.body;
+
+        if (!registrationId || !otp) {
+            return res.status(400).json({ message: 'Registration ID and OTP are required' });
+        }
+
+        const user = await User.findById(registrationId);
+        if (!user) {
+            return res.status(404).json({ message: 'Registration not found' });
+        }
+
+        if (user.emailVerified) {
+            return res.status(400).json({ message: 'Email already verified' });
+        }
+
+        if (user.emailVerificationToken !== otp) {
+            return res.status(400).json({ message: 'Invalid OTP' });
+        }
+
+        if (new Date() > user.emailVerificationExpires) {
+            return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+        }
+
+        // Mark email as verified
+        user.emailVerified = true;
+        user.emailVerificationToken = undefined;
+        user.emailVerificationExpires = undefined;
+        await user.save();
+
+        // Log verification
+        const log = new AuditLog({
+            transactionId: `VERIFY-${Date.now()}`,
+            action: 'create user',
+            performedBy: user.username,
+            details: `Email verified for external user: ${user.username} (${user.profession})`
+        });
+        await log.save();
+
+        res.json({ 
+            message: 'Email verified successfully! Your registration is now pending admin approval. You will receive a welcome email once approved.' 
+        });
+    } catch (err) {
+        console.error('Email verification error:', err.message);
+        res.status(500).json({ message: 'Server error during email verification' });
+    }
+});
+
+// Resend OTP
+router.post('/resend-otp', async (req, res) => {
+    try {
+        const { registrationId } = req.body;
+
+        if (!registrationId) {
+            return res.status(400).json({ message: 'Registration ID is required' });
+        }
+
+        const user = await User.findById(registrationId);
+        if (!user) {
+            return res.status(404).json({ message: 'Registration not found' });
+        }
+
+        if (user.emailVerified) {
+            return res.status(400).json({ message: 'Email already verified' });
+        }
+
+        // Generate new OTP
+        const otp = generateOTP();
+        const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+        user.emailVerificationToken = otp;
+        user.emailVerificationExpires = otpExpires;
+        await user.save();
+
+        // Send new OTP email
+        const emailSent = await sendOTPEmail(user.email, otp, user.fullName);
+        if (!emailSent) {
+            return res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
+        }
+
+        res.json({ message: 'New OTP sent to your email address' });
+    } catch (err) {
+        console.error('Resend OTP error:', err.message);
+        res.status(500).json({ message: 'Server error while resending OTP' });
+    }
+});
+
+// Get pending external user registrations (Admin only)
+router.get('/pending-registrations', auth, requireSuperAdmin, async (req, res) => {
+    try {
+        const pendingUsers = await User.find({ 
+            userType: 'external', 
+            registrationStatus: 'pending' 
+        }).select('-passwordHash').sort({ registrationDate: -1 });
+
+        res.json(pendingUsers);
+    } catch (err) {
+        console.error('Error fetching pending registrations:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Approve external user registration (Admin only)
+router.post('/approve-registration/:userId', auth, requireSuperAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const adminUsername = req.user.user.username;
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.registrationStatus !== 'pending') {
+            return res.status(400).json({ message: 'User registration is not pending' });
+        }
+
+        if (!user.emailVerified) {
+            return res.status(400).json({ message: 'User email is not verified yet' });
+        }
+
+        // Approve the user
+        user.registrationStatus = 'approved';
+        user.approvedBy = adminUsername;
+        user.approvedAt = new Date();
+        await user.save();
+
+        // Send welcome email
+        const emailSent = await sendWelcomeEmail(user.email, user.fullName, user.username, user.profession);
+        if (!emailSent) {
+            console.warn(`Failed to send welcome email to ${user.email}`);
+        }
+
+        // Log approval
+        const log = new AuditLog({
+            transactionId: `APPROVE-${Date.now()}`,
+            action: 'create user',
+            performedBy: adminUsername,
+            details: `External user approved: ${user.username} (${user.profession}) - Welcome email sent`
+        });
+        await log.save();
+
+        res.json({ message: 'User registration approved successfully and welcome email sent' });
+    } catch (err) {
+        console.error('Error approving registration:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
+
+// Reject external user registration (Admin only)
+router.post('/reject-registration/:userId', auth, requireSuperAdmin, async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const { reason } = req.body;
+        const adminUsername = req.user.user.username;
+
+        if (!reason) {
+            return res.status(400).json({ message: 'Rejection reason is required' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.registrationStatus !== 'pending') {
+            return res.status(400).json({ message: 'User registration is not pending' });
+        }
+
+        // Reject the user
+        user.registrationStatus = 'rejected';
+        user.rejectionReason = reason;
+        await user.save();
+
+        // Log rejection
+        const log = new AuditLog({
+            transactionId: `REJECT-${Date.now()}`,
+            action: 'create user',
+            performedBy: adminUsername,
+            details: `External user rejected: ${user.username} (${user.profession}) - Reason: ${reason}`
+        });
+        await log.save();
+
+        res.json({ message: 'User registration rejected' });
+    } catch (err) {
+        console.error('Error rejecting registration:', err.message);
+        res.status(500).json({ message: 'Server error' });
+    }
+});
 
 // Register External User (Lawyer/Notary)
-router.post('/register-external', async (req, res) => {
+router.post('/register-external-old', async (req, res) => {
     try {
         const { username, password, profession } = req.body;
 
@@ -81,7 +384,7 @@ router.post('/register', async (req, res) => {
     }
 });
 
-// Login Admin
+// Login Admin (Internal Users)
 router.post('/login', async (req, res) => {
     try {
         let { username, password } = req.body;
@@ -104,6 +407,26 @@ router.post('/login', async (req, res) => {
         if (!isMatch) {
             console.log(`[LOGIN FAILED] Password mismatch for user: '${username}'`);
             return res.status(400).json({ message: 'Invalid credentials - Password incorrect' });
+        }
+
+        // Check if external user is approved and email verified
+        if (user.userType === 'external') {
+            if (!user.emailVerified) {
+                return res.status(403).json({ 
+                    message: 'Please verify your email address before logging in. Check your email for the OTP.' 
+                });
+            }
+            if (user.registrationStatus !== 'approved') {
+                if (user.registrationStatus === 'pending') {
+                    return res.status(403).json({ 
+                        message: 'Your account is pending admin approval. Please wait for approval before logging in.' 
+                    });
+                } else if (user.registrationStatus === 'rejected') {
+                    return res.status(403).json({ 
+                        message: 'Your account registration has been rejected. Please contact support for more information.' 
+                    });
+                }
+            }
         }
 
         // Create Token

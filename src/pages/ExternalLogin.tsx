@@ -30,18 +30,15 @@ const ExternalLogin = () => {
         password 
       });
 
-      // Verify this is an external user
-      if (response.data.user.userType !== 'external') {
-        setError('Invalid credentials for external access. Please use the Admin Login for internal users.');
-        return;
-      }
-
       localStorage.setItem('isExternalLoggedIn', 'true');
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('userRole', response.data.user.role);
       localStorage.setItem('userType', 'external');
       localStorage.setItem('username', response.data.user.username);
       localStorage.setItem('profession', response.data.user.profession);
+      localStorage.setItem('fullName', response.data.user.fullName);
+      localStorage.setItem('email', response.data.user.email);
+      localStorage.setItem('licenseNumber', response.data.user.licenseNumber);
 
       navigate('/external/search');
     } catch (err: any) {
@@ -145,6 +142,16 @@ const ExternalLogin = () => {
 
                 <div className="text-center">
                   <p className="text-sm text-muted-foreground">
+                    Don't have an account? {' '}
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-blue-600 hover:text-blue-700"
+                      onClick={() => navigate('/external-register')}
+                    >
+                      Register Here
+                    </Button>
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-2">
                     Internal user? {' '}
                     <Button 
                       variant="link" 
@@ -154,21 +161,6 @@ const ExternalLogin = () => {
                       Use Admin Login
                     </Button>
                   </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Test Credentials Info */}
-          <Card className="glass-card border-amber-200 dark:border-amber-800">
-            <CardContent className="p-4">
-              <div className="text-center">
-                <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-200 mb-2">
-                  Test Credentials
-                </h4>
-                <div className="space-y-1 text-xs text-amber-700 dark:text-amber-300">
-                  <p><strong>Lawyer:</strong> lawyer1 / lawyer123</p>
-                  <p><strong>Notary:</strong> notary1 / notary123</p>
                 </div>
               </div>
             </CardContent>

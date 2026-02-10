@@ -53,6 +53,7 @@ const Sidebar = ({ className = "", mobile = false }: SidebarProps) => {
         { icon: Search, label: t.dashboard.menu.searchDeeds, path: '/admin/search', roles: ['superadmin', 'admin'] },
         { icon: FileText, label: t.dashboard.menu.auditLogs, path: '/admin/audit', roles: ['superadmin'] },
         { icon: Users, label: 'User Management', path: '/admin/users', roles: ['superadmin'] },
+        { icon: Users, label: 'External Users', path: '/admin/external-users', roles: ['superadmin'] },
     ];
 
     const filteredItems = menuItems.filter(item => !role || item.roles.includes(role));
