@@ -392,14 +392,12 @@ router.post('/login', async (req, res) => {
 
         // 1. Try finding in INTERNAL User collection
         user = await User.findOne({ username });
-        console.log(`[LOGIN] Internal user search result:`, user ? `Found ${user.username}` : 'Not found');
 
         // 2. If not found, try EXTERNAL User collection
         if (!user) {
             user = await ExternalUser.findOne({ username });
             if (user) {
                 isExternal = true;
-                console.log(`[LOGIN] External user found: ${user.username}`);
             }
         }
 
@@ -432,8 +430,6 @@ router.post('/login', async (req, res) => {
             console.log(`[LOGIN FAILED] Password mismatch for user: '${username}'`);
             return res.status(400).json({ message: 'Invalid credentials' });
         }
-
-        console.log(`[LOGIN SUCCESS] User authenticated: ${user.username}`);
 
         // Create Token Payload
         const payload = {
@@ -480,7 +476,7 @@ router.post('/login', async (req, res) => {
             }
         );
     } catch (err) {
-        console.error('[LOGIN ERROR]', err.message);
+        console.error(err.message);
         res.status(500).send('Server Error');
     }
 });
