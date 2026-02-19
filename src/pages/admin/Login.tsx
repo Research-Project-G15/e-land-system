@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Lock, User, Key, ShieldAlert, ArrowRight } from 'lucide-react';
+import { AlertTriangle, Lock, User, ShieldAlert, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/LanguageContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import MainLayout from '@/components/layout/MainLayout';
-import { mockAdminCredentials, addAuditLog } from '@/lib/mockData';
+import api from '@/lib/api';
 import logo from '@/assets/logo.png';
 
 const AdminLogin = () => {
@@ -15,7 +15,7 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp] = useState('');
+
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -24,26 +24,25 @@ const AdminLogin = () => {
     setError('');
     setIsLoading(true);
 
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      const response = await api.post('/auth/login', { username, password });
 
-    if (username === mockAdminCredentials.username && password === mockAdminCredentials.password) {
       localStorage.setItem('isAdminLoggedIn', 'true');
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('userRole', response.data.user.role);
+      localStorage.setItem('username', response.data.user.username);
 
-      // Log the login action
-      addAuditLog({
-        transactionId: `LOG-${new Date().getFullYear()}-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
-        deedNumber: '-',
-        action: 'login',
-        performedBy: username,
-        timestamp: new Date().toISOString(),
-        details: 'Admin login successful',
-      });
-
-      navigate('/admin/dashboard');
-    } else {
-      setError(t.login.error);
+      if (response.data.user.mustChangePassword) {
+        navigate('/admin/change-password');
+      } else {
+        navigate('/admin/dashboard');
+      }
+    } catch (err: any) {
+      console.error('Login Error:', err.response?.data?.message || err.message);
+      setError(err.response?.data?.message || err.message || t.login.error);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
@@ -102,23 +101,7 @@ const AdminLogin = () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="otp" className="text-foreground/80">{t.login.otp}</Label>
-                    <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded">Optional</span>
-                  </div>
-                  <div className="relative">
-                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                    <Input
-                      id="otp"
-                      type="text"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      className="pl-10 h-11 bg-background/50 border-input/60 focus:ring-primary/20 transition-all rounded-lg tracking-widest font-mono"
-                      placeholder="000 000"
-                    />
-                  </div>
-                </div>
+
 
                 {error && (
                   <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm p-3 rounded-lg flex items-center gap-2 animate-in slide-in-from-top-2">
@@ -144,7 +127,7 @@ const AdminLogin = () => {
 
               <div className="mt-8 pt-6 border-t border-border/40 text-center space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Demo Credentials: <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-primary">admin</code> / <code className="bg-muted px-1.5 py-0.5 rounded font-mono text-primary">admin123</code>
+                  <span className="opacity-70">Authorized Personnel Only</span>
                 </p>
                 <div className="text-xs text-muted-foreground/60 flex items-center justify-center gap-1">
                   <Lock className="w-3 h-3" />
